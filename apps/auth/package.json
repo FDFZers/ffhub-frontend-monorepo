@@ -1,0 +1,45 @@
+{
+  "name": "ffhub-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "portless ffauth vp dev",
+    "build": "tsc -b && vp build",
+    "preview": "portless ffauth vp preview",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix"
+  },
+  "dependencies": {
+    "@heroui/react": "catalog:",
+    "@heroui/styles": "catalog:",
+    "@icons-pack/react-simple-icons": "catalog:",
+    "@react-router/node": "catalog:",
+    "@react-router/serve": "catalog:",
+    "@repo/commons": "workspace:",
+    "altcha": "catalog:",
+    "axios": "catalog:",
+    "clsx": "catalog:",
+    "dayjs": "catalog:",
+    "highlight.js": "catalog:",
+    "js-cookie": "catalog:",
+    "jwt-decode": "catalog:",
+    "lucide-react": "catalog:",
+    "markdown-it": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:",
+    "tailwindcss": "catalog:",
+    "xss": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@types/js-cookie": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}
