@@ -1,0 +1,9 @@
+import { useEffect } from "react";
+
+export default function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+
+  return <div>正在跳转…</div>;
+}
