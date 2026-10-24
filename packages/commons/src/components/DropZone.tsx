@@ -21,7 +21,6 @@ import {
 
 import { handleUpload, type UploadConfig } from "../utils/upload";
 import { humanReadableSize } from "../utils/utils";
-import DynamicDiv from "./DynamicDiv.tsx";
 
 // ==================== 类型 ====================
 
@@ -30,6 +29,7 @@ export interface DropZoneProps {
   clearOnSelect?: boolean;
   className?: string;
   children?: ReactNode;
+  onChange?: (files: File[]) => void;
 }
 
 interface DropZoneContextValue {
@@ -79,12 +79,25 @@ export function DropZone({
   clearOnSelect = true,
   className = "",
   children,
+  onChange,
   ref,
 }: DropZoneProps & {
   ref?: Ref<HTMLDivElement>;
 }) {
   const [files, setFilesState] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  const prevFilesRef = useRef(files);
+  useEffect(() => {
+    if (prevFilesRef.current === files) return;
+    prevFilesRef.current = files;
+    onChangeRef.current?.(files);
+  }, [files]);
 
   const setFiles = useCallback(
     (newFiles: FileList | File[]) => {
@@ -297,98 +310,3 @@ export function DropZoneTrigger({
 
 DropZoneTrigger.displayName = "DropZone.Trigger";
 DropZone.Trigger = DropZoneTrigger;
-
-// ==================== 文件列表组件 ====================
-
-export function DropZoneFileList({ children }: { children?: ReactNode }) {
-  const { files } = useDropZoneContext();
-  return (
-    <DynamicDiv
-      width={files.length === 0 ? "0" : undefined}
-      height={files.length === 0 ? "0" : undefined}
-    >
-      {children}
-    </DynamicDiv>
-  );
-}
-
-DropZoneFileList.displayName = "DropZone.FileList";
-DropZone.FileList = DropZoneFileList;
-
-// export const DropZoneFileItem = forwardRef<
-//     HTMLDivElement,
-//     HTMLAttributes<HTMLDivElement>
-// >(({ children, ...rest }, ref) => {
-//     return (
-//         <div ref={ref} className="mcsl-drop-zone__file-item" {...rest}>
-//             {children}
-//         </div>
-//     );
-// });
-// DropZoneFileItem.displayName = "DropZone.FileItem";
-//
-// export const DropZoneFileItem = forwardRef<
-//     HTMLDivElement,
-//     { index?: number } & HTMLAttributes<HTMLDivElement>
-// >(({ index, children, ...rest }, ref) => {
-//     const { files } = useDropZoneContext();
-//     const file = index !== undefined ? files[index] : undefined;
-//     if (!file) return null;
-//     return (
-//         <div ref={ref} className="mcsl-drop-zone__file-item" {...rest}>
-//             {children}
-//         </div>
-//     );
-// });
-// DropZoneFileItem.displayName = "DropZone.FileItem";
-//
-// // ----- FileInfo (container) -----
-// export const DropZoneFileInfo = ({ children }: { children?: ReactNode }) => {
-//     return <div className="mcsl-drop-zone__file-info">{children}</div>;
-// };
-// DropZoneFileInfo.displayName = "DropZone.FileInfo";
-//
-// // ----- FileName -----
-// export const DropZoneFileName = () => {
-//     const ctx = useContext(FileItemContext);
-//     if (!ctx) throw new Error("FileName must be used within FileItem");
-//     return <span className="mcsl-drop-zone__file-name">{ctx.file.name}</span>;
-// };
-// DropZoneFileName.displayName = "DropZone.FileName";
-//
-// // ----- FileMeta -----
-// export const DropZoneFileMeta = () => {
-//     const ctx = useContext(FileItemContext);
-//     if (!ctx) throw new Error("FileMeta must be used within FileItem");
-//     return (
-//         <span className="mcsl-drop-zone__file-meta">
-//       {humanReadableSize(ctx.file.size)}
-//     </span>
-//     );
-// };
-// DropZoneFileMeta.displayName = "DropZone.FileMeta";
-//
-// // ----- FileRemoveTrigger -----
-// export const DropZoneFileRemoveTrigger = forwardRef<
-//     HTMLButtonElement,
-//     ButtonHTMLAttributes<HTMLButtonElement>
-// >(({ children, ...rest }, ref) => {
-//     const ctx = useContext(FileItemContext);
-//     if (!ctx) throw new Error("RemoveTrigger must be used within FileItem");
-//     const { files, setFiles } = useDropZoneContext();
-//     const handleRemove = () => {
-//         setFiles(files.filter((f) => f !== ctx.file));
-//     };
-//     return (
-//         <button
-//             ref={ref}
-//             type="button"
-//             onClick={handleRemove}
-//             className="mcsl-drop-zone__file-remove"
-//             {...rest}
-//         >
-//             {children || <i className="fa fa-times"/>}
-//         </button>
-//     );
-// });
-// DropZoneFileRemoveTrigger.displayName = "DropZone.FileRemoveTrigger";

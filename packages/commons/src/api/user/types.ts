@@ -1,7 +1,5 @@
 import type { DateString } from "../../utils/types.ts";
 
-export type RegisterRequestStatus = "pending" | "approved" | "rejected";
-
 export type UserType = "student" | "teacher";
 export type School = "fdfz" | "ffxh" | "ffqp" | "ffpd" | "ffja";
 export type Visibility = "public" | "friends" | "private";
@@ -28,26 +26,6 @@ export interface UserPermission {
   created_at: DateString;
   updated_at: DateString;
   note: string;
-}
-
-export interface RegisterRequest {
-  id: number;
-
-  type: UserType;
-  student_num?: string;
-  real_name: string;
-  school: School;
-
-  username: string;
-  nickname?: string;
-  password: string;
-
-  created_at: DateString;
-  status: RegisterRequestStatus;
-  created_user_id?: number;
-  reviewer_user_id?: number;
-  review_comment?: string;
-  reviewed_at?: DateString;
 }
 
 export interface UserPassword {

@@ -16,14 +16,12 @@ function QQVerify({ code, onBack }: Props) {
           <LucideUndo2 />
         </CloseButton>
       </Card.Header>
-      <Card.Content>
-        <div className="flex w-80 max-w-full justify-center">
+      <Card.Content className="flex w-100 max-w-full justify-center">
           <Surface className="flex w-full justify-center rounded-3xl p-6" variant="secondary">
             <Typography type="h1" className="font-mono tracking-widest">
               {code}
             </Typography>
           </Surface>
-        </div>
       </Card.Content>
       <Card.Footer className="mt-1 flex justify-center gap-2">
         <Spinner color="accent" />

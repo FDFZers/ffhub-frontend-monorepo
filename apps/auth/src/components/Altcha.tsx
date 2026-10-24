@@ -5,23 +5,37 @@ import "altcha/i18n/zh-cn";
 import "altcha/types/react";
 import "altcha/themes/business.min.css";
 import { API_AUTH } from "@repo/commons/api/types.ts";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
-interface AltchaProps {
+interface Props {
   onPayload?: (payload: string | null) => void;
 }
 
-const Altcha = forwardRef<{ payload: string | null }, AltchaProps>(({ onPayload }, ref) => {
+export interface AltchaHandle {
+  readonly payload: string | null;
+  reset: () => void;
+}
+
+const Altcha = forwardRef<AltchaHandle, Props>(({ onPayload }, ref) => {
   const widgetRef = useRef<WidgetAttributes & WidgetMethods & HTMLElement>(null);
   const [payload, setPayload] = useState<string | null>(null);
 
-  useImperativeHandle(ref, () => {
-    return {
+  const reset = useCallback(() => {
+    widgetRef.current?.reset();
+    setPayload(null);
+    onPayload?.(null);
+  }, [onPayload]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
       get payload() {
         return payload;
       },
-    };
-  }, [payload]);
+      reset,
+    }),
+    [payload, reset],
+  );
 
   useEffect(() => {
     const handleStateChange = (ev: Event | CustomEvent) => {

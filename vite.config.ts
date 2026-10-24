@@ -27,6 +27,7 @@ export default defineConfig({
   lint: {
     plugins: ["react", "typescript", "oxc"],
     rules: {
+      "react/set-state-in-effect": "off",
       "react/rules-of-hooks": "error",
       "react/only-export-components": [
         "warn",

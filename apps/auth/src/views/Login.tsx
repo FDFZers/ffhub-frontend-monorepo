@@ -1,4 +1,4 @@
-import type { TwoFactorMethod } from "@repo/commons/api/auth/types";
+import type { TwoFactorMethod } from "@repo/commons/api/auth/types.ts";
 import type { School } from "@repo/commons/api/user/types.ts";
 
 import { toast } from "@heroui/react";
@@ -8,28 +8,31 @@ import {
   verifyEmail,
   verifyEmailInit,
   verifyTOTP,
-} from "@repo/commons/api/auth/api";
-import { getIPInfo } from "@repo/commons/api/misc/api";
+} from "@repo/commons/api/auth/api.ts";
+import { getIPInfo } from "@repo/commons/api/misc/api.ts";
+import { useUserStore } from "@repo/commons/stores/user.ts";
 import { useCallback, useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router";
 
-import EmailVerify from "../components/EmailVerify.tsx";
-import PasswordVerify from "../components/PasswordVerify.tsx";
-import SchoolIP from "../components/SchoolIP.tsx";
-import Select2FA from "../components/Select2FA.tsx";
-import TotpVerify from "../components/TotpVerify.tsx";
+import EmailVerify from "../components/login/EmailVerify.tsx";
+import PasswordVerify from "../components/login/PasswordVerify.tsx";
+import SchoolIP from "../components/login/SchoolIP.tsx";
+import Select2FA from "../components/login/Select2FA.tsx";
+import TotpVerify from "../components/login/TotpVerify.tsx";
 
 type Step =
-  | { kind: "checking" }
-  | { kind: "school-ip"; school: School }
-  | { kind: "credentials" }
-  | { kind: "select-2fa"; methods: TwoFactorMethod[] }
-  | { kind: "email-verify" }
-  | { kind: "totp" }
-  | { kind: "qq"; code: string };
+    | { kind: "checking" }
+    | { kind: "school-ip"; school: School }
+    | { kind: "credentials" }
+    | { kind: "select-2fa"; methods: TwoFactorMethod[] }
+    | { kind: "email-verify" }
+    | { kind: "totp" }
+    | { kind: "qq"; code: string };
 
 export default function Login() {
   const navigate = useNavigate();
+  const { syncClaims } = useUserStore.getState();
 
   const [step, setStep] = useState<Step>({ kind: "checking" });
   const [sessionID, setSessionID] = useState<string | null>(null);
@@ -43,9 +46,9 @@ export default function Login() {
         const info = await getIPInfo();
         if (cancelled) return;
         setStep(
-          info.type === "other"
-            ? { kind: "credentials" }
-            : { kind: "school-ip", school: info.type },
+            info.type === "other"
+                ? { kind: "credentials" }
+                : { kind: "school-ip", school: info.type },
         );
       } catch {
         if (!cancelled) setStep({ kind: "credentials" });
@@ -64,18 +67,19 @@ export default function Login() {
   }, []);
 
   const finalize = useCallback(
-    async (sid: string) => {
-      setLoading(true);
-      try {
-        await loginFinalize(sid);
-        navigate("/", { replace: true });
-      } catch (e: any) {
-        toast.danger("登录失败", { description: e.message });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [navigate],
+      async (sid: string) => {
+        setLoading(true);
+        try {
+          await loginFinalize(sid);
+          await syncClaims();
+          navigate("/", { replace: true });
+        } catch (e: any) {
+          toast.danger("登录失败", { description: e.message });
+        } finally {
+          setLoading(false);
+        }
+      },
+      [syncClaims, navigate],
   );
 
   const enterMethod = useCallback((method: TwoFactorMethod, sid: string) => {
@@ -96,10 +100,10 @@ export default function Login() {
   }, [availableMethods, reset]);
 
   const handleCredentials = async (
-    username: string,
-    password: string,
-    remember: boolean,
-    altchaPayload: string,
+      username: string,
+      password: string,
+      remember: boolean,
+      altchaPayload: string,
   ) => {
     setLoading(true);
     try {
@@ -119,10 +123,10 @@ export default function Login() {
       } else if (methods.length === 1) {
         enterMethod(methods[0], res.session_id);
       } else {
-        setStep({kind: "select-2fa", methods});
+        setStep({ kind: "select-2fa", methods });
       }
     } catch (e: any) {
-      toast.danger("登录失败", {description: e.message});
+      toast.danger("登录失败", { description: e.message });
     } finally {
       setLoading(false);
     }
@@ -173,27 +177,30 @@ export default function Login() {
   };
 
   return (
-    <>
-      {step.kind === "school-ip" && (
-        <SchoolIP school={step.school} onSubmit={() => setStep({ kind: "credentials" })} />
-      )}
-      {step.kind === "credentials" && (
-        <PasswordVerify loading={loading} onSubmit={handleCredentials} />
-      )}
-      {step.kind === "select-2fa" && (
-        <Select2FA methods={step.methods} onSelect={handleSelectMethod} onBack={reset} />
-      )}
-      {step.kind === "email-verify" && (
-        <EmailVerify
-          loading={loading}
-          onSubmit={handleEmailVerify}
-          onBack={backFromMethod}
-          onSend={handleEmailSend}
-        />
-      )}
-      {step.kind === "totp" && (
-        <TotpVerify loading={loading} onSubmit={handleTotp} onBack={backFromMethod} />
-      )}
-    </>
+      <>
+        <Helmet>
+          <title>登录 - 复旦附中学生 ID</title>
+        </Helmet>
+        {step.kind === "school-ip" && (
+            <SchoolIP school={step.school} onSubmit={() => setStep({ kind: "credentials" })} />
+        )}
+        {step.kind === "credentials" && (
+            <PasswordVerify loading={loading} onSubmit={handleCredentials} />
+        )}
+        {step.kind === "select-2fa" && (
+            <Select2FA methods={step.methods} onSelect={handleSelectMethod} onBack={reset} />
+        )}
+        {step.kind === "email-verify" && (
+            <EmailVerify
+                loading={loading}
+                onSubmit={handleEmailVerify}
+                onBack={backFromMethod}
+                onSend={handleEmailSend}
+            />
+        )}
+        {step.kind === "totp" && (
+            <TotpVerify loading={loading} onSubmit={handleTotp} onBack={backFromMethod} />
+        )}
+      </>
   );
 }

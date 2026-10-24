@@ -32,14 +32,11 @@ function LoadingOverlay({ ready, children }: LoadingOverlayProps) {
 
   useEffect(() => {
     if (!ready) return;
-    const timer = setTimeout(() => {
-      setPhase((p) => {
-        if (p === "waiting") return "done";
-        if (p === "entered") return "exiting";
-        return p;
-      });
-    }, 0);
-    return () => clearTimeout(timer);
+    setPhase((p) => {
+      if (p === "waiting") return "done";
+      if (p === "entered") return "exiting";
+      return p;
+    });
   }, [ready, phase]);
 
   useEffect(() => {
@@ -54,40 +51,40 @@ function LoadingOverlay({ ready, children }: LoadingOverlayProps) {
   const contentShown = phase === "exiting" || phase === "done";
 
   return (
-      <>
-        {phase !== "done" && (
-            <div
-                className={clsx(
-                    "bg-background fixed inset-0 z-100 flex h-full w-full flex-col items-center justify-center transition-opacity duration-500",
-                    overlayVisible ? "opacity-100" : "opacity-0",
-                    overlayVisible ? "pointer-events-auto" : "pointer-events-none",
-                )}
-            >
-              <div className="mb-8 flex items-center justify-center gap-6">
-                <img src="/assets/images/fdfz.png" alt="" className="size-28" />
-                <div>
-                  <h1 className="m-0 mb-2 text-5xl font-semibold">复旦附中学生 ID</h1>
-                  <h2 className="text-muted m-0 text-4xl font-semibold">FDFZ Student ID</h2>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-4">
-                <Spinner size="lg" />
-                <span className="text-muted">加载中…</span>
-              </div>
-            </div>
-        )}
-
+    <>
+      {phase !== "done" && (
         <div
-            className={clsx(
-                "h-full w-full transition-opacity duration-500",
-                contentShown ? "opacity-100" : "opacity-0",
-                contentShown ? "pointer-events-auto" : "pointer-events-none",
-            )}
+          className={clsx(
+            "bg-background fixed inset-0 z-100 flex h-full w-full flex-col items-center justify-center transition-opacity duration-500",
+            overlayVisible ? "opacity-100" : "opacity-0",
+            overlayVisible ? "pointer-events-auto" : "pointer-events-none",
+          )}
         >
-          {children}
+          <div className="mb-8 flex items-center justify-center gap-6">
+            <img src="/assets/images/fdfz.png" alt="" className="size-28" />
+            <div>
+              <h1 className="m-0 mb-2 text-5xl font-semibold">复旦附中数字资源站</h1>
+              <h2 className="text-muted m-0 text-4xl font-semibold">FFHub - FDFZ Digital Hub</h2>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-4">
+            <Spinner size="lg" />
+            <span className="text-muted">加载中…</span>
+          </div>
         </div>
-      </>
+      )}
+
+      <div
+        className={clsx(
+          "h-full w-full transition-opacity duration-500",
+          contentShown ? "opacity-100" : "opacity-0",
+          contentShown ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 

@@ -1,11 +1,8 @@
 import type { RegisteredTokenClaims } from "@repo/commons/api/auth/types.ts";
-import type { User } from "@repo/commons/api/user/types.ts";
 
 import { toast } from "@heroui/react";
-import { request } from "@repo/commons/api/api.ts";
-import { API_AUTH, type ApiError } from "@repo/commons/api/types.ts";
 import LoadingOverlay from "@repo/commons/components/LoadingOverlay.tsx";
-import { useUserStore } from "@repo/commons/stores/user";
+import { useUserStore } from "@repo/commons/stores/user.ts";
 import { useEffect, useRef } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
@@ -14,6 +11,7 @@ import { Entry, RequireAuth, RequireGuest } from "./router/Guards.tsx";
 import Login from "./views/Login.tsx";
 import OAuthRequest from "./views/OAuthRequest.tsx";
 import Register from "./views/Register.tsx";
+import RegStatus from "./views/RegStatus.tsx";
 
 export default function App() {
   const initialized = useUserStore((s: any) => s.initialized);
@@ -23,7 +21,7 @@ export default function App() {
     if (bootStartedRef.current) return;
     bootStartedRef.current = true;
 
-    const { syncClaims, setUser, setInitialized } = useUserStore.getState();
+    const { syncClaims, setInitialized } = useUserStore.getState();
 
     syncClaims()
       .then((c: RegisteredTokenClaims | null) => {
@@ -31,23 +29,6 @@ export default function App() {
           setInitialized(true);
           return;
         }
-        request<User>({
-          baseURL: API_AUTH,
-          url: "/users/me",
-          method: "GET",
-          withToken: true,
-          logoutIfTokenExpired: true,
-        })
-          .then((u) => {
-            setUser(u);
-            setInitialized(true);
-          })
-          .catch((e: ApiError) => {
-            console.error("[FFHub Auth] 用户信息获取失败", e);
-            toast.danger("用户信息获取失败", {
-              description: e.message,
-            });
-          });
       })
       .catch((e: any) => {
         console.error("[FFHub Auth] 令牌信息解析失败", e);
@@ -66,6 +47,10 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
             </Route>
+          </Route>
+
+          <Route element={<AuthLayout />}>
+            <Route path="/reg_status" element={<RegStatus />} />
           </Route>
 
           <Route element={<RequireAuth />}>

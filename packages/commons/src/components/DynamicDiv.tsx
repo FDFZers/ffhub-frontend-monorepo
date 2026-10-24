@@ -1,11 +1,13 @@
 import clsx from "clsx";
 import {
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
 } from "react";
 
 export type DynamicDivProps = {
@@ -18,6 +20,23 @@ export type DynamicDivProps = {
   children?: ReactNode;
 };
 
+type MeasuredSize = {
+  width?: string;
+  height?: string;
+};
+
+const EMPTY_SIZE: MeasuredSize = {};
+
+function stripDuplicateIds(node: HTMLElement) {
+  if (node.id) node.removeAttribute("id");
+  node.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+}
+
+function decodeImage(img: HTMLImageElement): Promise<void> {
+  if (typeof img.decode !== "function") return Promise.resolve();
+  return img.decode().catch(() => {});
+}
+
 function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
   const {
     width: propWidth,
@@ -28,62 +47,165 @@ function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
     minHeight,
     children,
     className,
+    style,
     ...rest
   } = props;
 
   const divRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const updateWidth = useCallback(() => {
+  const [measured, setMeasured] = useState<MeasuredSize>(EMPTY_SIZE);
+  const lastMeasuredRef = useRef<MeasuredSize>(EMPTY_SIZE);
+
+  const frameRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+  const measureIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  const cancelScheduled = useCallback(() => {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  const measure = useCallback(async () => {
     const div = divRef.current;
     const wrapper = wrapperRef.current;
-    if (!div || !wrapper) return;
+    const parent = div?.parentElement ?? null;
 
-    const parent = div.parentElement!;
-    const copy = wrapper.cloneNode(true) as HTMLDivElement;
-    copy.style.position = "absolute";
-    copy.style.visibility = "hidden";
-    copy.style.width = propWidth ?? "max-content";
-    copy.style.height = propHeight ?? "max-content";
-    if (maxWidth) copy.style.maxWidth = maxWidth;
-    if (maxHeight) copy.style.maxHeight = maxHeight;
-    if (minWidth) copy.style.minWidth = minWidth;
-    if (minHeight) copy.style.minHeight = minHeight;
+    if (!div || !wrapper || !parent) return;
+    if (propWidth && propHeight) return;
 
-    const isContainingBlock = parent.style.transform !== "";
-    if (!isContainingBlock) parent.style.transform = "translateX(0px)";
+    const id = ++measureIdRef.current;
 
-    parent.appendChild(copy);
-    const newWidth = propWidth ?? copy.offsetWidth + "px";
-    const newHeight = propHeight ?? copy.offsetHeight + "px";
-    copy.remove();
+    let copy: HTMLDivElement | null = null;
+    let parentTransform: string | null = null;
 
-    if (!isContainingBlock) parent.style.transform = "";
+    try {
+      copy = wrapper.cloneNode(true) as HTMLDivElement;
+      stripDuplicateIds(copy);
 
-    if (newWidth !== "0px") div.style.width = newWidth;
-    if (newHeight !== "0px") div.style.height = newHeight;
+      const s = copy.style;
+      s.position = "absolute";
+      s.top = "0";
+      s.left = "0";
+      s.margin = "0";
+      s.visibility = "hidden";
+      s.pointerEvents = "none";
+      s.width = propWidth ?? "max-content";
+      s.height = propHeight ?? "max-content";
+      if (maxWidth) s.maxWidth = maxWidth;
+      if (maxHeight) s.maxHeight = maxHeight;
+      if (minWidth) s.minWidth = minWidth;
+      if (minHeight) s.minHeight = minHeight;
+
+      const parentStyles = getComputedStyle(parent);
+      if (
+          parentStyles.transform === "none" &&
+          parentStyles.position === "static"
+      ) {
+        parentTransform = parent.style.transform;
+        parent.style.transform = "translateX(0px)";
+      }
+
+      parent.appendChild(copy);
+
+      const images = copy.querySelectorAll("img");
+      if (images.length > 0) {
+        await Promise.all(Array.from(images, decodeImage));
+      }
+
+      if (!mountedRef.current || id !== measureIdRef.current) return;
+
+      const rect = copy.getBoundingClientRect();
+
+      if (rect.width === 0 && rect.height === 0) return;
+
+      const nextWidth = propWidth ?? `${rect.width}px`;
+      const nextHeight = propHeight ?? `${rect.height}px`;
+
+      const prev = lastMeasuredRef.current;
+      if (prev.width === nextWidth && prev.height === nextHeight) return;
+
+      lastMeasuredRef.current = { width: nextWidth, height: nextHeight };
+      setMeasured(lastMeasuredRef.current);
+    } finally {
+      copy?.remove();
+      if (parentTransform !== null) parent.style.transform = parentTransform;
+    }
   }, [propWidth, propHeight, maxWidth, maxHeight, minWidth, minHeight]);
 
+  const scheduleMeasure = useCallback(() => {
+    cancelScheduled();
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      void measure();
+    });
+  }, [measure, cancelScheduled]);
+
+  const scheduleMeasureSoon = useCallback(() => {
+    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = null;
+      void measure();
+    }, 100);
+  }, [measure]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   useLayoutEffect(() => {
-    updateWidth();
-  }, [updateWidth]);
+    void measure();
+  }, [measure]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const observer = new MutationObserver(updateWidth);
-    observer.observe(wrapper, {
+
+    const mutationObserver = new MutationObserver(scheduleMeasure);
+    mutationObserver.observe(wrapper, {
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
     });
-    return () => observer.disconnect();
-  }, [updateWidth]);
 
-  useEffect(() => {
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, [updateWidth]);
+    const resizeObserver = new ResizeObserver(scheduleMeasureSoon);
+    resizeObserver.observe(wrapper);
+
+    const onWindowResize = () => scheduleMeasure();
+    window.addEventListener("resize", onWindowResize);
+
+    let disposed = false;
+    document.fonts?.ready
+        .then(() => {
+          if (!disposed) scheduleMeasure();
+        })
+        .catch(() => {});
+
+    return () => {
+      disposed = true;
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", onWindowResize);
+      cancelScheduled();
+    };
+  }, [scheduleMeasure, scheduleMeasureSoon, cancelScheduled]);
+
+  const resolvedStyle: CSSProperties = { ...style };
+  const finalWidth = propWidth ?? measured.width;
+  const finalHeight = propHeight ?? measured.height;
+  if (finalWidth !== undefined) resolvedStyle.width = finalWidth;
+  if (finalHeight !== undefined) resolvedStyle.height = finalHeight;
 
   return (
       <div
@@ -92,6 +214,7 @@ function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
               "transition-[width,height] duration-300 ease-out",
               className,
           )}
+          style={resolvedStyle}
           {...rest}
       >
         <div ref={wrapperRef}>{children}</div>

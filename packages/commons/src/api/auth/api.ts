@@ -1,8 +1,8 @@
-import type {School, UserType} from "../user/types.ts";
-import type {TwoFactorMethod} from "./types.ts";
+import type { School, UserType } from "../user/types.ts";
+import type { TwoFactorMethod } from "./types.ts";
 
-import {request} from "../api.ts";
-import {API_AUTH_INTERNAL} from "../types.ts";
+import { request } from "../api.ts";
+import { API_AUTH_INTERNAL } from "../types.ts";
 
 export interface LoginInitRequest {
   username: string;
@@ -97,7 +97,11 @@ export interface RegisterRequest {
   altcha_payload: string;
 }
 
-export async function register(req: RegisterRequest): Promise<void> {
+export interface RegisterResponse {
+  id: string;
+}
+
+export async function register(req: RegisterRequest): Promise<string> {
   const form = new FormData();
   form.append("username", req.username);
   if (req.nickname !== undefined) form.append("nickname", req.nickname);
@@ -111,11 +115,11 @@ export async function register(req: RegisterRequest): Promise<void> {
   form.append("altcha_payload", req.altcha_payload);
   form.append("proof_image", req.proof_image);
 
-  await request({
+  return (await request<RegisterResponse>({
     method: "POST",
     baseURL: API_AUTH_INTERNAL,
     url: "/auth/register",
     withToken: false,
     data: form,
-  });
+  })).id;
 }

@@ -33,16 +33,14 @@ function SchoolIP({ school, onSubmit }: { school: School; onSubmit: () => void }
 
   return (
     <>
-      <Card.Content>
-        <div className="flex w-100 max-w-full flex-col items-center justify-center p-8">
-          <span {...fade(0, "mb-1 text-center text-2xl font-semibold")}>欢迎，</span>
-          <span {...fade(STEP_MS, "mb-5 text-center text-4xl font-bold")}>
-            {SCHOOL_NAMES[school]}
-          </span>
-          <span {...fade(2 * STEP_MS, "text-muted text-center text-sm")}>
-            校园网登录将自动跳过二次验证
-          </span>
-        </div>
+      <Card.Content className="flex w-100 max-w-full flex-col items-center justify-center p-8">
+        <span {...fade(0, "mb-1 text-center text-2xl font-semibold")}>欢迎，</span>
+        <span {...fade(STEP_MS, "mb-5 text-center text-4xl font-bold")}>
+          {SCHOOL_NAMES[school]}
+        </span>
+        <span {...fade(2 * STEP_MS, "text-muted text-center text-sm")}>
+          校园网登录将自动跳过二次验证
+        </span>
       </Card.Content>
 
       <Card.Footer className="mt-2">

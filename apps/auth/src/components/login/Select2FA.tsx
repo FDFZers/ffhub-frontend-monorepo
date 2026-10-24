@@ -19,7 +19,7 @@ function Select2FA({ methods, onSelect, onBack }: Props) {
       </Card.Header>
       <Card.Content>
         <ListBox
-          className="w-72 max-w-full"
+          className="w-100 max-w-full"
           selectionMode="single"
           onSelectionChange={(keys) => {
             const first = Array.from(keys)[0];

@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 
 import ExternalRedirect from "./ExternalRedirect";
 
-const SPACE_URL = "https://space.fdfz.top/";
+const SPACE_URL = import.meta.env.DEV ? "https://space.ffhub.localhost" : "https://space.fdfz.top/";
 
 export function RequireAuth() {
   const location = useLocation();

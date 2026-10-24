@@ -19,7 +19,7 @@ function TotpVerify({ loading, onSubmit, onBack }: Props) {
         <Card.Description>请输入你的 TOTP 代码以完成登录</Card.Description>
       </Card.Header>
       <Card.Content>
-        <div className="w-80 max-w-full">
+        <div className="w-100 max-w-full">
           <InputOTP
               maxLength={6}
               variant="secondary"
