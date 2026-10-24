@@ -22,13 +22,13 @@ import Select2FA from "../components/login/Select2FA.tsx";
 import TotpVerify from "../components/login/TotpVerify.tsx";
 
 type Step =
-    | { kind: "checking" }
-    | { kind: "school-ip"; school: School }
-    | { kind: "credentials" }
-    | { kind: "select-2fa"; methods: TwoFactorMethod[] }
-    | { kind: "email-verify" }
-    | { kind: "totp" }
-    | { kind: "qq"; code: string };
+  | { kind: "checking" }
+  | { kind: "school-ip"; school: School }
+  | { kind: "credentials" }
+  | { kind: "select-2fa"; methods: TwoFactorMethod[] }
+  | { kind: "email-verify" }
+  | { kind: "totp" }
+  | { kind: "qq"; code: string };
 
 export default function Login() {
   const navigate = useNavigate();
@@ -41,14 +41,14 @@ export default function Login() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const info = await getIPInfo();
         if (cancelled) return;
         setStep(
-            info.type === "other"
-                ? { kind: "credentials" }
-                : { kind: "school-ip", school: info.type },
+          info.type === "other"
+            ? { kind: "credentials" }
+            : { kind: "school-ip", school: info.type },
         );
       } catch {
         if (!cancelled) setStep({ kind: "credentials" });
@@ -67,19 +67,19 @@ export default function Login() {
   }, []);
 
   const finalize = useCallback(
-      async (sid: string) => {
-        setLoading(true);
-        try {
-          await loginFinalize(sid);
-          await syncClaims();
-          navigate("/", { replace: true });
-        } catch (e: any) {
-          toast.danger("登录失败", { description: e.message });
-        } finally {
-          setLoading(false);
-        }
-      },
-      [syncClaims, navigate],
+    async (sid: string) => {
+      setLoading(true);
+      try {
+        await loginFinalize(sid);
+        await syncClaims();
+        await navigate("/", { replace: true });
+      } catch (e: any) {
+        toast.danger("登录失败", { description: e.message });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [syncClaims, navigate],
   );
 
   const enterMethod = useCallback((method: TwoFactorMethod, sid: string) => {
@@ -100,10 +100,10 @@ export default function Login() {
   }, [availableMethods, reset]);
 
   const handleCredentials = async (
-      username: string,
-      password: string,
-      remember: boolean,
-      altchaPayload: string,
+    username: string,
+    password: string,
+    remember: boolean,
+    altchaPayload: string,
   ) => {
     setLoading(true);
     try {
@@ -177,30 +177,30 @@ export default function Login() {
   };
 
   return (
-      <>
-        <Helmet>
-          <title>登录 - 复旦附中学生 ID</title>
-        </Helmet>
-        {step.kind === "school-ip" && (
-            <SchoolIP school={step.school} onSubmit={() => setStep({ kind: "credentials" })} />
-        )}
-        {step.kind === "credentials" && (
-            <PasswordVerify loading={loading} onSubmit={handleCredentials} />
-        )}
-        {step.kind === "select-2fa" && (
-            <Select2FA methods={step.methods} onSelect={handleSelectMethod} onBack={reset} />
-        )}
-        {step.kind === "email-verify" && (
-            <EmailVerify
-                loading={loading}
-                onSubmit={handleEmailVerify}
-                onBack={backFromMethod}
-                onSend={handleEmailSend}
-            />
-        )}
-        {step.kind === "totp" && (
-            <TotpVerify loading={loading} onSubmit={handleTotp} onBack={backFromMethod} />
-        )}
-      </>
+    <>
+      <Helmet>
+        <title>登录 - 复旦附中学生 ID</title>
+      </Helmet>
+      {step.kind === "school-ip" && (
+        <SchoolIP school={step.school} onSubmit={() => setStep({ kind: "credentials" })} />
+      )}
+      {step.kind === "credentials" && (
+        <PasswordVerify loading={loading} onSubmit={handleCredentials} />
+      )}
+      {step.kind === "select-2fa" && (
+        <Select2FA methods={step.methods} onSelect={handleSelectMethod} onBack={reset} />
+      )}
+      {step.kind === "email-verify" && (
+        <EmailVerify
+          loading={loading}
+          onSubmit={handleEmailVerify}
+          onBack={backFromMethod}
+          onSend={handleEmailSend}
+        />
+      )}
+      {step.kind === "totp" && (
+        <TotpVerify loading={loading} onSubmit={handleTotp} onBack={backFromMethod} />
+      )}
+    </>
   );
 }

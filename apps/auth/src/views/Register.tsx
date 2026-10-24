@@ -9,9 +9,9 @@ import Identity from "../components/register/Identity.tsx";
 import Password from "../components/register/Password.tsx";
 import Proof from "../components/register/Proof.tsx";
 import SchoolForm from "../components/register/School.tsx";
+import Success from "../components/register/Success.tsx";
 import Username from "../components/register/Username.tsx";
 import Verify from "../components/register/Verify.tsx";
-import Success from "../components/register/Success.tsx";
 
 export default function Register() {
   const [step, setStep] = useState(0);
@@ -115,9 +115,7 @@ export default function Register() {
       {step === 5 && (
         <Verify loading={loading} onSubmit={(payload) => submit(payload)} onBack={back} />
       )}
-      {step === 6 && (
-          <Success id={id}/>
-      )}
+      {step === 6 && <Success id={id} />}
     </>
   );
 }

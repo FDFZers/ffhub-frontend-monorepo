@@ -105,10 +105,7 @@ function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
       if (minHeight) s.minHeight = minHeight;
 
       const parentStyles = getComputedStyle(parent);
-      if (
-          parentStyles.transform === "none" &&
-          parentStyles.position === "static"
-      ) {
+      if (parentStyles.transform === "none" && parentStyles.position === "static") {
         parentTransform = parent.style.transform;
         parent.style.transform = "translateX(0px)";
       }
@@ -187,10 +184,10 @@ function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
 
     let disposed = false;
     document.fonts?.ready
-        .then(() => {
-          if (!disposed) scheduleMeasure();
-        })
-        .catch(() => {});
+      .then(() => {
+        if (!disposed) scheduleMeasure();
+      })
+      .catch(() => {});
 
     return () => {
       disposed = true;
@@ -208,17 +205,14 @@ function DynamicDiv(props: DynamicDivProps & HTMLAttributes<HTMLDivElement>) {
   if (finalHeight !== undefined) resolvedStyle.height = finalHeight;
 
   return (
-      <div
-          ref={divRef}
-          className={clsx(
-              "transition-[width,height] duration-300 ease-out",
-              className,
-          )}
-          style={resolvedStyle}
-          {...rest}
-      >
-        <div ref={wrapperRef}>{children}</div>
-      </div>
+    <div
+      ref={divRef}
+      className={clsx("transition-[width,height] duration-300 ease-out", className)}
+      style={resolvedStyle}
+      {...rest}
+    >
+      <div ref={wrapperRef}>{children}</div>
+    </div>
   );
 }
 

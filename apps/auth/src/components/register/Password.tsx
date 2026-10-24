@@ -27,6 +27,10 @@ function Password({ initial, onNext, onBack }: Props) {
     );
   const isConfirmValid = confirm.length > 0 && confirm === password;
 
+  const handleSubmit = () => {
+    if (isPasswordValid && isConfirmValid) onNext(password);
+  };
+
   return (
     <>
       <Card.Header className="relative mb-2">
@@ -50,6 +54,9 @@ function Password({ initial, onNext, onBack }: Props) {
                 placeholder="请输入密码…"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSubmit();
+                }}
               />
             </InputGroup>
             <Tooltip delay={0}>
@@ -83,6 +90,9 @@ function Password({ initial, onNext, onBack }: Props) {
               placeholder="请再次输入密码…"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
           </InputGroup>
           <FieldError>两次输入的密码不一致</FieldError>
@@ -95,7 +105,7 @@ function Password({ initial, onNext, onBack }: Props) {
         <Button
           className="w-full"
           isDisabled={!isPasswordValid || !isConfirmValid}
-          onPress={() => onNext(password)}
+          onPress={handleSubmit}
         >
           下一步
         </Button>

@@ -22,7 +22,7 @@ function Verify({ loading, onSubmit, onBack }: Props) {
         <Chip className="absolute top-0 right-0">6 / 6</Chip>
       </Card.Header>
       <Card.Content className="w-100">
-          <Altcha onPayload={setAltchaPayload} />
+        <Altcha onPayload={setAltchaPayload} />
       </Card.Content>
       <Card.Footer className="mt-4 flex flex-col gap-2">
         <div className="flex w-full justify-between gap-2">

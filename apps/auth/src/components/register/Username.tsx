@@ -27,6 +27,10 @@ function Username({ initial, onNext }: Props) {
   const isUsernameValid = /^[a-zA-Z0-9_-]{4,32}$/.test(username);
   const isNicknameValid = nickname.length >= 1 && nickname.length <= 32;
 
+  const handleSubmit = () => {
+    if (isUsernameValid && isNicknameValid) onNext({ username, nickname });
+  };
+
   return (
     <>
       <Card.Header className="relative mb-2">
@@ -51,6 +55,9 @@ function Username({ initial, onNext }: Props) {
                   placeholder="给自己取个 ID 吧～"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSubmit();
+                  }}
                 />
               </InputGroup>
               <Tooltip delay={0}>
@@ -85,6 +92,9 @@ function Username({ initial, onNext }: Props) {
                   placeholder="给自己起个名字吧～"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSubmit();
+                  }}
                 />
               </InputGroup>
               <Tooltip delay={0}>
@@ -108,7 +118,7 @@ function Username({ initial, onNext }: Props) {
         <Button
           className="w-full"
           isDisabled={!isUsernameValid || !isNicknameValid}
-          onPress={() => onNext({ username, nickname })}
+          onPress={handleSubmit}
         >
           下一步
         </Button>

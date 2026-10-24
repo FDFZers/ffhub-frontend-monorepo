@@ -15,6 +15,10 @@ function Identity({ initial, onNext, onBack }: Props) {
   const isRealNameValid = /^[\u4e00-\u9fff\u00b7]{1,4}$/.test(realName);
   const isStudentNumValid = /^(?:\d{8}|\d{6}0\d{2})$/.test(studentNum);
 
+  const handleSubmit = () => {
+    if (isRealNameValid && isStudentNumValid) onNext({ realName, studentNum });
+  };
+
   return (
     <>
       <Card.Header className="relative mb-2">
@@ -37,6 +41,9 @@ function Identity({ initial, onNext, onBack }: Props) {
               placeholder="请输入你的学号…"
               value={studentNum}
               onChange={(e) => setStudentNum(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
           </InputGroup>
           <FieldError>请输入有效的学号</FieldError>
@@ -51,6 +58,9 @@ function Identity({ initial, onNext, onBack }: Props) {
               placeholder="请输入你的真实姓名…"
               value={realName}
               onChange={(e) => setRealName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
           </InputGroup>
           <FieldError>请输入有效的真实姓名</FieldError>
@@ -63,7 +73,7 @@ function Identity({ initial, onNext, onBack }: Props) {
         <Button
           className="w-full"
           isDisabled={!isRealNameValid || !isStudentNumValid}
-          onPress={() => onNext({ realName, studentNum })}
+          onPress={handleSubmit}
         >
           下一步
         </Button>

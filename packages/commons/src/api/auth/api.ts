@@ -115,11 +115,13 @@ export async function register(req: RegisterRequest): Promise<string> {
   form.append("altcha_payload", req.altcha_payload);
   form.append("proof_image", req.proof_image);
 
-  return (await request<RegisterResponse>({
-    method: "POST",
-    baseURL: API_AUTH_INTERNAL,
-    url: "/auth/register",
-    withToken: false,
-    data: form,
-  })).id;
+  return (
+    await request<RegisterResponse>({
+      method: "POST",
+      baseURL: API_AUTH_INTERNAL,
+      url: "/auth/register",
+      withToken: false,
+      data: form,
+    })
+  ).id;
 }

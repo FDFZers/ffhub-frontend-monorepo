@@ -18,8 +18,8 @@ function Query({ loading, onSubmit }: Props) {
   );
   const isAltchaValid = altchaPayload !== null;
 
-  const handleSubmit = async () => {
-    onSubmit(id, altchaPayload!);
+  const handleSubmit = () => {
+    if (isIDValid && isAltchaValid) void onSubmit(id, altchaPayload!);
   };
 
   return (
@@ -57,7 +57,7 @@ function Query({ loading, onSubmit }: Props) {
           className="w-full"
           isDisabled={!isIDValid || !isAltchaValid}
           isPending={loading}
-          onPress={() => handleSubmit()}
+          onPress={handleSubmit}
         >
           查询审批状态
         </Button>

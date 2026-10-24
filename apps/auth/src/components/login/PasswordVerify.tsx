@@ -38,10 +38,6 @@ function PasswordVerify({ loading, onSubmit }: Props) {
     }
   };
 
-  const handleEnter = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSubmit();
-  };
-
   return (
     <>
       <Card.Header className="mb-2">
@@ -65,7 +61,9 @@ function PasswordVerify({ loading, onSubmit }: Props) {
               onChange={(e) => {
                 setUsername(e.target.value);
               }}
-              onKeyDown={handleEnter}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
           </InputGroup>
           <FieldError>请输入有效的用户名</FieldError>
@@ -86,7 +84,9 @@ function PasswordVerify({ loading, onSubmit }: Props) {
               onChange={(e) => {
                 setPassword(e.target.value);
               }}
-              onKeyDown={handleEnter}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
             />
           </InputGroup>
           <FieldError>请输入有效的密码</FieldError>

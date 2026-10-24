@@ -1,7 +1,6 @@
-import {Button, Card, InputOTP, Link, Typography} from "@heroui/react";
+import { Button, Card, InputOTP } from "@heroui/react";
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "@heroui/react/input-otp";
 import { useState } from "react";
-import clsx from "clsx";
 
 interface Props {
   loading?: boolean;
@@ -21,12 +20,12 @@ function TotpVerify({ loading, onSubmit, onBack }: Props) {
       <Card.Content>
         <div className="w-100 max-w-full">
           <InputOTP
-              maxLength={6}
-              variant="secondary"
-              value={code}
-              onChange={(c) => setCode(c.toUpperCase())}
-              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-              className="w-auto mx-auto"
+            maxLength={6}
+            variant="secondary"
+            value={code}
+            onChange={(c) => setCode(c.toUpperCase())}
+            pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+            className="mx-auto w-auto"
           >
             <InputOTP.Group>
               <InputOTP.Slot index={0} />

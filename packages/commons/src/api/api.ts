@@ -9,8 +9,8 @@ import { toast } from "@heroui/react";
 import axios from "axios";
 
 import { useUserStore } from "../stores/user.ts";
-import { API_AUTH_INTERNAL, ApiError, type ApiErrorInfo } from "./types.ts";
 import { readAccessToken } from "./token.ts";
+import { API_AUTH_INTERNAL, ApiError, type ApiErrorInfo } from "./types.ts";
 
 export const client: AxiosInstance = axios.create({
   withCredentials: true,
@@ -44,9 +44,9 @@ function refreshAccessToken(): Promise<void> {
 
   refreshPromise = client
     .post(API_AUTH_INTERNAL + "/auth/refresh", null, { skipRefresh: true })
-    .then(() => {
+    .then(async () => {
       try {
-        useUserStore.getState().syncClaims();
+        await useUserStore.getState().syncClaims();
       } catch (e) {
         console.error("[FFHub API] 令牌校验失败", e);
         toast.danger("令牌校验失败");
