@@ -1,5 +1,5 @@
-import type { TwoFactorMethod } from "@repo/commons/api/auth/types.ts";
-import type { School } from "@repo/commons/api/user/types.ts";
+import type { TwoFactorMethod } from "@repo/shared/api/auth/types.ts";
+import type { School } from "@repo/shared/api/user/types.ts";
 
 import { toast } from "@heroui/react";
 import {
@@ -7,22 +7,23 @@ import {
   loginInit,
   verifyEmail,
   verifyEmailInit,
+  verifyQQ,
+  verifyQQInit,
   verifyTOTP,
-} from "@repo/commons/api/auth/api.ts";
-import { getIPInfo } from "@repo/commons/api/misc/api.ts";
-import { useUserStore } from "@repo/commons/stores/user.ts";
+} from "@repo/shared/api/auth/api.ts";
+import { getIPInfo } from "@repo/shared/api/misc/api.ts";
+import { SPACE_URL } from "@repo/shared/router/urls.ts";
 import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
-import { useNavigate } from "react-router";
 
-import EmailVerify from "../components/login/EmailVerify.tsx";
+import EmailCodeVerify from "../components/EmailCodeVerify.tsx";
 import PasswordVerify from "../components/login/PasswordVerify.tsx";
 import SchoolIP from "../components/login/SchoolIP.tsx";
 import Select2FA from "../components/login/Select2FA.tsx";
 import TotpVerify from "../components/login/TotpVerify.tsx";
+import QQCodeVerify from "../components/QQCodeVerify.tsx";
 
 type Step =
-  | { kind: "checking" }
   | { kind: "school-ip"; school: School }
   | { kind: "credentials" }
   | { kind: "select-2fa"; methods: TwoFactorMethod[] }
@@ -31,10 +32,7 @@ type Step =
   | { kind: "qq"; code: string };
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { syncClaims } = useUserStore.getState();
-
-  const [step, setStep] = useState<Step>({ kind: "checking" });
+  const [step, setStep] = useState<Step>({ kind: "credentials" });
   const [sessionID, setSessionID] = useState<string | null>(null);
   const [availableMethods, setAvailableMethods] = useState<TwoFactorMethod[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,15 +42,12 @@ export default function Login() {
     void (async () => {
       try {
         const info = await getIPInfo();
-        if (cancelled) return;
-        setStep(
-          info.type === "other"
-            ? { kind: "credentials" }
-            : { kind: "school-ip", school: info.type },
+        const school = info.type;
+        if (cancelled || school === "other") return;
+        setStep((current) =>
+          current.kind === "credentials" ? { kind: "school-ip", school } : current,
         );
-      } catch {
-        if (!cancelled) setStep({ kind: "credentials" });
-      }
+      } catch {}
     })();
     return () => {
       cancelled = true;
@@ -67,29 +62,80 @@ export default function Login() {
   }, []);
 
   const finalize = useCallback(
-    async (sid: string) => {
+    async (sid: string): Promise<boolean> => {
       setLoading(true);
       try {
-        await loginFinalize(sid);
-        await syncClaims();
-        await navigate("/", { replace: true });
-      } catch (e: any) {
-        toast.danger("登录失败", { description: e.message });
+        try {
+          await loginFinalize(sid);
+        } catch (e: unknown) {
+          console.error("[FFHub Auth] 登录最终确认失败", e);
+          const code = (e as { code?: string } | null)?.code;
+          const message = e instanceof Error ? e.message : "登录失败";
+          if (code === "not_found") {
+            toast.danger("登录会话已失效", { description: message });
+            reset();
+            return false;
+          }
+          toast.danger("登录失败", { description: message });
+          return false;
+        }
+
+        // 登录已经成功（Cookie 已写入），直接跳转，后续令牌校验由目标应用完成。
+        window.location.replace(SPACE_URL);
+        return true;
       } finally {
         setLoading(false);
       }
     },
-    [syncClaims, navigate],
+    [reset],
   );
 
-  const enterMethod = useCallback((method: TwoFactorMethod, sid: string) => {
-    if (method === "email") setStep({ kind: "email-verify" });
-    else if (method === "totp") setStep({ kind: "totp" });
-    else if (method === "qq") {
-      // TODO: QQ
-      setStep({ kind: "qq", code: sid.slice(0, 6) });
-    }
-  }, []);
+  const enterQQ = useCallback(
+    async (sid: string) => {
+      setLoading(true);
+      try {
+        // 后端 QQ init 是幂等的：重复调用会返回同一验证码，所以每次进入该步骤都可以放心重新获取。
+        const { code } = await verifyQQInit(sid);
+        if (!code) {
+          toast.danger("QQ 验证初始化失败", { description: "未获取到验证码，请重新登录" });
+          reset();
+          return;
+        }
+        setStep({ kind: "qq", code });
+      } catch (e: unknown) {
+        console.error("[FFHub Auth] QQ 验证初始化失败", e);
+        const code = (e as { code?: string } | null)?.code;
+        const message = e instanceof Error ? e.message : "QQ 验证初始化失败";
+        if (message.includes("二次验证已通过")) {
+          // 二次验证已通过但未完成登录（例如上一次 finalize 失败），直接重试 finalize。
+          await finalize(sid);
+          return;
+        }
+        if (code === "not_found") {
+          toast.danger("登录会话已失效", { description: message });
+          reset();
+          return;
+        }
+        toast.danger("QQ 验证初始化失败", { description: message });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [finalize, reset],
+  );
+
+  const enterMethod = useCallback(
+    async (method: TwoFactorMethod, sid: string) => {
+      if (method === "email") {
+        setStep({ kind: "email-verify" });
+      } else if (method === "totp") {
+        setStep({ kind: "totp" });
+      } else if (method === "qq") {
+        await enterQQ(sid);
+      }
+    },
+    [enterQQ],
+  );
 
   const backFromMethod = useCallback(() => {
     if (availableMethods.length > 1) {
@@ -118,15 +164,17 @@ export default function Login() {
       const methods = (res["2fa"] ?? []) as TwoFactorMethod[];
       setAvailableMethods(methods);
 
-      if (methods.length === 0) {
+      if (res.passed || methods.length === 0) {
         await finalize(res.session_id);
       } else if (methods.length === 1) {
-        enterMethod(methods[0], res.session_id);
+        await enterMethod(methods[0], res.session_id);
       } else {
         setStep({ kind: "select-2fa", methods });
       }
-    } catch (e: any) {
-      toast.danger("登录失败", { description: e.message });
+    } catch (e: unknown) {
+      console.error("[FFHub Auth] 登录失败", e);
+      const message = e instanceof Error ? e.message : "登录失败";
+      toast.danger("登录失败", { description: message });
     } finally {
       setLoading(false);
     }
@@ -134,19 +182,28 @@ export default function Login() {
 
   const handleSelectMethod = (method: TwoFactorMethod) => {
     if (!sessionID) return;
-    enterMethod(method, sessionID);
+    void enterMethod(method, sessionID);
   };
 
   const handleEmailSend = async () => {
-    if (!sessionID) return;
-    setLoading(true);
+    if (!sessionID) throw new Error("登录会话已失效，请重新登录");
     try {
       await verifyEmailInit(sessionID);
-      setStep({ kind: "email-verify" });
-    } catch (e: any) {
-      toast.danger("验证码发送失败", { description: e.message });
-    } finally {
-      setLoading(false);
+    } catch (e: unknown) {
+      console.error("[FFHub Auth] 登录验证码发送失败", e);
+      const code = (e as { code?: string } | null)?.code;
+      const message = e instanceof Error ? e.message : "验证码发送失败";
+      if (message.includes("二次验证已通过")) {
+        // 上一次验证已通过但 finalize 失败时，重新发送验证码没有意义，直接重试最终登录。
+        await finalize(sessionID);
+        return;
+      }
+      if (code === "not_found") {
+        toast.danger("登录会话已失效", { description: message });
+        reset();
+        return;
+      }
+      throw new Error(message);
     }
   };
 
@@ -156,10 +213,60 @@ export default function Login() {
     try {
       await verifyEmail(sessionID, code);
       await finalize(sessionID);
-    } catch (e: any) {
-      toast.danger("邮箱验证失败", { description: e.message });
+    } catch (e: unknown) {
+      console.error("[FFHub Auth] 邮箱验证失败", e);
+      const code = (e as { code?: string } | null)?.code;
+      const message = e instanceof Error ? e.message : "验证失败";
+      if (message.includes("二次验证已通过")) {
+        // 二次验证已通过，但最终登录未完成（例如刚才 finalize 网络失败），直接重试。
+        await finalize(sessionID);
+        return;
+      }
+      if (code === "not_found") {
+        toast.danger("登录会话已失效", { description: message });
+        reset();
+        return;
+      }
+      if (code === "rate_limit_exceeded" && message.includes("次数过多")) {
+        toast.danger("邮箱验证失败", { description: message });
+        reset();
+        return;
+      }
+      toast.danger("邮箱验证失败", { description: message });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQQVerify = async (code: string, silent = false) => {
+    if (!sessionID) return;
+    if (!silent) {
+      setLoading(true);
+    }
+    try {
+      await verifyQQ(sessionID, code);
+      await finalize(sessionID);
+    } catch (e: unknown) {
+      if (!silent) console.error("[FFHub Auth] QQ 验证失败", e);
+      const code = (e as { code?: string } | null)?.code;
+      const message = e instanceof Error ? e.message : "QQ 验证失败";
+      if (message.includes("二次验证已通过")) {
+        await finalize(sessionID);
+        return;
+      }
+      if (code === "not_found") {
+        toast.danger("登录会话已失效", { description: message });
+        reset();
+        return;
+      }
+      if (code === "rate_limit_exceeded" && message.includes("次数过多")) {
+        toast.danger("QQ 验证失败", { description: message });
+        reset();
+      } else if (!silent) {
+        toast.danger("QQ 验证失败", { description: message });
+      }
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
@@ -169,8 +276,25 @@ export default function Login() {
     try {
       await verifyTOTP(sessionID, code);
       await finalize(sessionID);
-    } catch (e: any) {
-      toast.danger("TOTP 验证失败", { description: e.message });
+    } catch (e: unknown) {
+      console.error("[FFHub Auth] TOTP 验证失败", e);
+      const code = (e as { code?: string } | null)?.code;
+      const message = e instanceof Error ? e.message : "验证失败";
+      if (message.includes("二次验证已通过")) {
+        await finalize(sessionID);
+        return;
+      }
+      if (code === "not_found") {
+        toast.danger("登录会话已失效", { description: message });
+        reset();
+        return;
+      }
+      if (code === "rate_limit_exceeded" && message.includes("次数过多")) {
+        toast.danger("TOTP 验证失败", { description: message });
+        reset();
+        return;
+      }
+      toast.danger("TOTP 验证失败", { description: message });
     } finally {
       setLoading(false);
     }
@@ -188,18 +312,35 @@ export default function Login() {
         <PasswordVerify loading={loading} onSubmit={handleCredentials} />
       )}
       {step.kind === "select-2fa" && (
-        <Select2FA methods={step.methods} onSelect={handleSelectMethod} onBack={reset} />
+        <Select2FA
+          methods={step.methods}
+          loading={loading}
+          onSelect={handleSelectMethod}
+          onBack={reset}
+        />
       )}
       {step.kind === "email-verify" && (
-        <EmailVerify
+        <EmailCodeVerify
+          title="邮箱验证"
+          description="请验证你的邮箱以完成登录"
+          submitLabel="验证"
+          resendSeconds={60}
           loading={loading}
+          onSend={handleEmailSend}
           onSubmit={handleEmailVerify}
           onBack={backFromMethod}
-          onSend={handleEmailSend}
         />
       )}
       {step.kind === "totp" && (
         <TotpVerify loading={loading} onSubmit={handleTotp} onBack={backFromMethod} />
+      )}
+      {step.kind === "qq" && (
+        <QQCodeVerify
+          code={step.code}
+          loading={loading}
+          onVerify={(silent) => handleQQVerify(step.code, silent)}
+          onBack={backFromMethod}
+        />
       )}
     </>
   );

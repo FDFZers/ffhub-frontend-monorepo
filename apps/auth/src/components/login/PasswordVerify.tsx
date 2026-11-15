@@ -9,11 +9,12 @@ import {
   TextField,
   Typography,
 } from "@heroui/react";
-import { LucideLock, LucideUser2 } from "lucide-react";
-import { useState } from "react";
+import { isValidPassword, isValidUsername } from "@repo/shared/utils/validation.ts";
+import { Eye, EyeOff, LucideLock, LucideUser2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
-import Altcha from "../Altcha.tsx";
+import Altcha, { type AltchaHandle } from "../Altcha.tsx";
 
 interface Props {
   loading?: boolean;
@@ -22,20 +23,23 @@ interface Props {
 
 function PasswordVerify({ loading, onSubmit }: Props) {
   const navigate = useNavigate();
+  const altchaRef = useRef<AltchaHandle>(null);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [altchaPayload, setAltchaPayload] = useState<string | null>(null);
 
-  const isUsernameValid = /^[a-zA-Z0-9_-]{4,32}$/.test(username);
-  const isPasswordValid = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,64}$/.test(password);
+  const isUsernameValid = isValidUsername(username);
+  const isPasswordValid = isValidPassword(password);
   const isAltchaValid = altchaPayload !== null;
 
   const handleSubmit = () => {
-    if (isUsernameValid && isPasswordValid && isAltchaValid) {
-      onSubmit(username, password, remember, altchaPayload || "");
-    }
+    if (!isUsernameValid || !isPasswordValid || !altchaPayload) return;
+
+    onSubmit(username, password, remember, altchaPayload);
+    altchaRef.current?.reset();
   };
 
   return (
@@ -46,8 +50,9 @@ function PasswordVerify({ loading, onSubmit }: Props) {
       </Card.Header>
       <Card.Content className="flex w-md max-w-full flex-col gap-4">
         <TextField
-          name="identifier"
+          name="username"
           type="text"
+          autoComplete="username"
           isInvalid={username.length > 0 && !isUsernameValid}
         >
           <Label>用户名</Label>
@@ -71,6 +76,7 @@ function PasswordVerify({ loading, onSubmit }: Props) {
         <TextField
           name="password"
           type="password"
+          autoComplete="current-password"
           isInvalid={password.length > 0 && !isPasswordValid}
         >
           <Label>密码</Label>
@@ -81,6 +87,7 @@ function PasswordVerify({ loading, onSubmit }: Props) {
             <InputGroup.Input
               placeholder="请输入密码…"
               value={password}
+              type={isVisible ? "text" : "password"}
               onChange={(e) => {
                 setPassword(e.target.value);
               }}
@@ -88,12 +95,23 @@ function PasswordVerify({ loading, onSubmit }: Props) {
                 if (e.key === "Enter") handleSubmit();
               }}
             />
+            <InputGroup.Suffix className="pe-0">
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                aria-label={isVisible ? "隐藏密码" : "显示密码"}
+                onPress={() => setIsVisible(!isVisible)}
+              >
+                {isVisible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+              </Button>
+            </InputGroup.Suffix>
           </InputGroup>
           <FieldError>请输入有效的密码</FieldError>
         </TextField>
         <div className="flex flex-col gap-1">
           <Label>人机验证</Label>
-          <Altcha onPayload={setAltchaPayload} />
+          <Altcha onPayload={setAltchaPayload} ref={altchaRef} />
         </div>
         <div className="flex justify-between">
           <Checkbox
@@ -109,7 +127,10 @@ function PasswordVerify({ loading, onSubmit }: Props) {
               记住此设备
             </Checkbox.Content>
           </Checkbox>
-          <Link className="text-accent hover:text-accent-hover text-sm no-underline" href="#">
+          <Link
+            className="text-accent hover:text-accent-hover text-sm no-underline"
+            onPress={() => navigate("/reset_password")}
+          >
             忘记密码？
           </Link>
         </div>

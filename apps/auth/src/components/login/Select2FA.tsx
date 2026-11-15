@@ -1,16 +1,21 @@
-import type { TwoFactorMethod } from "@repo/commons/api/auth/types.ts";
+import type { TwoFactorMethod } from "@repo/shared/api/auth/types.ts";
 
 import { Button, Card, Description, Label, ListBox } from "@heroui/react";
 import { SiQq } from "@icons-pack/react-simple-icons";
 import { LucideMail, LucideRectangleEllipsis, LucideUndo2 } from "lucide-react";
+import { useState } from "react";
 
 interface Props {
   methods: TwoFactorMethod[];
+  loading?: boolean;
   onSelect: (method: TwoFactorMethod) => void;
   onBack: () => void;
 }
 
-function Select2FA({ methods, onSelect, onBack }: Props) {
+function Select2FA({ methods, loading, onSelect, onBack }: Props) {
+  // 选中后立刻清空：即使验证方式初始化失败、仍停留在本步骤，也允许再次点击同一种方式重试。
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
   return (
     <>
       <Card.Header className="mb-2">
@@ -21,13 +26,16 @@ function Select2FA({ methods, onSelect, onBack }: Props) {
         <ListBox
           className="w-100 max-w-full"
           selectionMode="single"
+          selectedKeys={selectedKeys}
           onSelectionChange={(keys) => {
             const first = Array.from(keys)[0];
-            if (first) onSelect(first as TwoFactorMethod);
+            if (first === undefined) return;
+            setSelectedKeys([]);
+            onSelect(first as TwoFactorMethod);
           }}
         >
           {methods.includes("email") && (
-            <ListBox.Item id="email" textValue="email">
+            <ListBox.Item id="email" textValue="email" isDisabled={loading}>
               <LucideMail />
               <div className="flex flex-col">
                 <Label>邮箱</Label>
@@ -37,7 +45,7 @@ function Select2FA({ methods, onSelect, onBack }: Props) {
             </ListBox.Item>
           )}
           {methods.includes("qq") && (
-            <ListBox.Item id="qq" textValue="qq">
+            <ListBox.Item id="qq" textValue="qq" isDisabled={loading}>
               <SiQq />
               <div className="flex flex-col">
                 <Label>QQ</Label>
@@ -47,7 +55,7 @@ function Select2FA({ methods, onSelect, onBack }: Props) {
             </ListBox.Item>
           )}
           {methods.includes("totp") && (
-            <ListBox.Item id="totp" textValue="totp">
+            <ListBox.Item id="totp" textValue="totp" isDisabled={loading}>
               <LucideRectangleEllipsis />
               <div className="flex flex-col">
                 <Label>TOTP</Label>
@@ -59,7 +67,7 @@ function Select2FA({ methods, onSelect, onBack }: Props) {
         </ListBox>
       </Card.Content>
       <Card.Footer className="mt-4">
-        <Button className="w-full" variant="tertiary" onPress={onBack}>
+        <Button className="w-full" variant="tertiary" isDisabled={loading} onPress={onBack}>
           <LucideUndo2 /> 返回
         </Button>
       </Card.Footer>

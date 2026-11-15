@@ -1,2 +1,2 @@
-@import "@repo/commons/style.css";
-@source "../../../packages/commons/src/";
+@import "@repo/shared/style.css";
+@source "../../../packages/shared/src/";

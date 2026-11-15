@@ -1,12 +1,12 @@
-import type { StatusResponse } from "@repo/commons/api/reg_req/api.ts";
+import type { StatusResponse } from "@repo/shared/api/reg_req/api.ts";
 
 import { toast } from "@heroui/react";
-import { getStatus } from "@repo/commons/api/reg_req/api.ts";
+import { getStatus } from "@repo/shared/api/reg_req/api.ts";
 import { useCallback, useState } from "react";
 import { Helmet } from "react-helmet";
 
-import Query from "../components/reg_status/Query.tsx";
-import Result from "../components/reg_status/Result.tsx";
+import Query from "../components/register_status/Query.tsx";
+import Result from "../components/register_status/Result.tsx";
 
 export default function RegStatus() {
   const [current, setCurrent] = useState<StatusResponse | null>(null);
@@ -17,9 +17,9 @@ export default function RegStatus() {
     try {
       const result = await getStatus({ id, altcha_payload: altchaPayload });
       setCurrent(result);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[FFHub Auth] 注册申请状态查询失败", e);
-      toast.danger("查询失败", { description: e.message });
+      toast.danger("查询失败", { description: e instanceof Error ? e.message : "查询失败" });
     } finally {
       setLoading(false);
     }

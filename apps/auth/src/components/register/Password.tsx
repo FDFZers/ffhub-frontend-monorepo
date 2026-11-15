@@ -1,14 +1,7 @@
-import {
-  Button,
-  Card,
-  Chip,
-  FieldError,
-  InputGroup,
-  Label,
-  TextField,
-  Tooltip,
-} from "@heroui/react";
-import { LucideInfo, LucideLock } from "lucide-react";
+import { Button, Card, Chip, FieldError, InputGroup, Label, TextField } from "@heroui/react";
+import { Tooltip } from "@repo/shared/components/Tooltip.tsx";
+import { isValidPassword } from "@repo/shared/utils/validation.ts";
+import { Eye, EyeOff, LucideInfo, LucideLock } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -20,11 +13,9 @@ interface Props {
 function Password({ initial, onNext, onBack }: Props) {
   const [password, setPassword] = useState(initial);
   const [confirm, setConfirm] = useState(initial);
+  const [isVisible, setIsVisible] = useState(false);
 
-  const isPasswordValid =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]{8,32}$/.test(
-      password,
-    );
+  const isPasswordValid = isValidPassword(password);
   const isConfirmValid = confirm.length > 0 && confirm === password;
 
   const handleSubmit = () => {
@@ -36,12 +27,13 @@ function Password({ initial, onNext, onBack }: Props) {
       <Card.Header className="relative mb-2">
         <Card.Title>设置密码</Card.Title>
         <Card.Description>请设置你的登录密码</Card.Description>
-        <Chip className="absolute top-0 right-0">2 / 6</Chip>
+        <Chip className="absolute top-0 right-0">2 / 5</Chip>
       </Card.Header>
       <Card.Content className="flex w-md max-w-full flex-col gap-4">
         <TextField
           name="password"
           type="password"
+          autoComplete="new-password"
           isInvalid={password.length > 0 && !isPasswordValid}
         >
           <Label>密码</Label>
@@ -53,14 +45,25 @@ function Password({ initial, onNext, onBack }: Props) {
               <InputGroup.Input
                 placeholder="请输入密码…"
                 value={password}
+                type={isVisible ? "text" : "password"}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSubmit();
                 }}
               />
+              <InputGroup.Suffix className="pe-0">
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setIsVisible(!isVisible)}
+                >
+                  {isVisible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                </Button>
+              </InputGroup.Suffix>
             </InputGroup>
             <Tooltip delay={0}>
-              <Button variant="tertiary" isIconOnly>
+              <Button variant="tertiary" isIconOnly aria-label="密码格式说明">
                 <LucideInfo />
               </Button>
               <Tooltip.Content>
@@ -79,6 +82,7 @@ function Password({ initial, onNext, onBack }: Props) {
         <TextField
           name="confirm_password"
           type="password"
+          autoComplete="new-password"
           isInvalid={confirm.length > 0 && !isConfirmValid}
         >
           <Label>确认密码</Label>
@@ -89,11 +93,17 @@ function Password({ initial, onNext, onBack }: Props) {
             <InputGroup.Input
               placeholder="请再次输入密码…"
               value={confirm}
+              type={isVisible ? "text" : "password"}
               onChange={(e) => setConfirm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSubmit();
               }}
             />
+            <InputGroup.Suffix className="pe-0">
+              <Button isIconOnly size="sm" variant="ghost" onPress={() => setIsVisible(!isVisible)}>
+                {isVisible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+              </Button>
+            </InputGroup.Suffix>
           </InputGroup>
           <FieldError>两次输入的密码不一致</FieldError>
         </TextField>

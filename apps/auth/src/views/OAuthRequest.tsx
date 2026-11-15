@@ -1,94 +1,106 @@
-import { Button, Card, Description, Label, Switch, Tooltip, Typography } from "@heroui/react";
-import { LucideArrowRight, LucideCircleQuestionMark, LucideMail, LucideUser2 } from "lucide-react";
+import { Button, Card, InputGroup, Label, Separator, TextField, Typography } from "@heroui/react";
+import { LucideKeyRound, LucideMonitorSmartphone } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Helmet } from "react-helmet";
+import { useLocation, useNavigate } from "react-router";
 
-function OAuthRequest() {
+import AuthorizationConsent from "../components/oauth/AuthorizationConsent.tsx";
+import DeviceAuthorization from "../components/oauth/DeviceAuthorization.tsx";
+import { formatUserCodeInput, isCompleteUserCode, parseOAuthRequest } from "../utils/oauth.ts";
+
+function DeviceCodeLanding() {
+  const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const isValid = isCompleteUserCode(code);
+
+  const submit = () => {
+    if (!isValid) return;
+    void navigate(`/oauth?user_code=${encodeURIComponent(code)}`);
+  };
+
   return (
     <>
-      <div className="mb-8 flex items-center justify-center gap-10">
-        <img src="/assets/images/fdfz.png" alt="" className="size-24" />
-        <LucideArrowRight className="text-muted size-10" />
-        <img src="/assets/images/fdfz.png" alt="" className="size-24" />
-      </div>
-      <Card>
-        <Card.Header>
-          <Card.Title>应用授权</Card.Title>
-          <Card.Description>“复旦附中 Wiki”请求访问你的账户以提供个性化服务</Card.Description>
-        </Card.Header>
-        <Card.Content className="flex w-lg flex-col gap-2">
-          <Typography type="h4" className="text-sm font-medium">
-            必要权限
-          </Typography>
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between">
-              <div className="flex items-center gap-2">
-                <LucideUser2 className="size-6" />
-                <div className="flex flex-col">
-                  <Label>获取账号信息</Label>
-                  <Description>Student ID｜读取你的用户 ID、用户名、头像等基本信息</Description>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-between">
-              <div className="flex items-center gap-2">
-                <LucideMail className="size-6" />
-                <div className="flex flex-col">
-                  <Label>获取联系信息</Label>
-                  <Description>Student ID｜读取你的邮箱地址与 QQ 号</Description>
-                </div>
-              </div>
-              <Tooltip delay={0}>
-                <Button isIconOnly size="sm" variant="tertiary">
-                  <LucideCircleQuestionMark />
-                </Button>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  <p>应用需获取联系方式以把你开盒</p>
-                </Tooltip.Content>
-              </Tooltip>
-            </div>
+      <Card.Header className="mb-2">
+        <Card.Title>应用授权</Card.Title>
+        <Card.Description>使用复旦附中学生 ID 授权第三方应用</Card.Description>
+      </Card.Header>
+      <Card.Content className="flex w-md max-w-full flex-col gap-4">
+        <Typography type="body-sm" color="muted">
+          当第三方应用请求访问你的账户时，会自动跳转到本页面。请确认应用信息与请求的权限后，再决定是否授权。
+        </Typography>
+
+        <Separator />
+
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <LucideMonitorSmartphone className="text-muted size-4" aria-hidden />
+            <Typography type="h4" className="m-0 text-sm font-medium">
+              设备授权
+            </Typography>
           </div>
-          <Typography type="h4" className="text-sm font-medium">
-            可选权限
+          <Typography type="body-xs" color="muted">
+            在电视、游戏机或其他不便输入账号的设备上登录时，输入设备屏幕上显示的授权码。
           </Typography>
-          <div>
-            <Switch>
-              <Switch.Content className="flex w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <LucideMail className="size-6" />
-                  <div className="flex flex-col">
-                    <Label>获取账号密码</Label>
-                    <Description className="font-normal">Student ID｜读取你的账号密码</Description>
-                  </div>
-                </div>
-                <Tooltip delay={0}>
-                  <Tooltip.Trigger>
-                    <Switch.Control>
-                      <Switch.Thumb />
-                    </Switch.Control>
-                  </Tooltip.Trigger>
-                  <Tooltip.Content showArrow>
-                    <Tooltip.Arrow />
-                    <p>应用需获取密码以把你盗号了</p>
-                  </Tooltip.Content>
-                </Tooltip>
-              </Switch.Content>
-            </Switch>
-          </div>
-        </Card.Content>
-        <Card.Footer className="mt-4 flex flex-col justify-center gap-2">
-          <div className="flex w-full justify-between gap-2">
-            <Button className="w-full" variant="tertiary">
-              取消
-            </Button>
-            <Button className="w-full">授权</Button>
-          </div>
-          <Typography color="muted" type="body-xs">
-            你可以随时在账户设置中更改或撤销此授权
-          </Typography>
-        </Card.Footer>
-      </Card>
+        </div>
+
+        <TextField name="user_code">
+          <Label>设备授权码</Label>
+          <InputGroup variant="secondary">
+            <InputGroup.Prefix>
+              <LucideKeyRound className="text-muted size-4" aria-hidden />
+            </InputGroup.Prefix>
+            <InputGroup.Input
+              autoCapitalize="characters"
+              autoComplete="off"
+              className="font-mono tracking-widest"
+              inputMode="text"
+              maxLength={9}
+              placeholder="ABCD-EFGH"
+              spellCheck={false}
+              value={code}
+              onChange={(event) => setCode(formatUserCodeInput(event.target.value))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") submit();
+              }}
+            />
+          </InputGroup>
+        </TextField>
+
+        <Typography type="body-xs" color="muted">
+          授权码格式为 ABCD-EFGH，可在设备屏幕上找到。
+        </Typography>
+        <Typography type="body-xs" color="muted">
+          OAuth 应用授权链接由应用自动生成并打开，通常无需手动填写授权码。
+        </Typography>
+      </Card.Content>
+      <Card.Footer className="mt-2">
+        <Button className="w-full" isDisabled={!isValid} onPress={submit}>
+          继续
+        </Button>
+      </Card.Footer>
     </>
   );
 }
 
-export default OAuthRequest;
+export default function OAuthRequest() {
+  const { search } = useLocation();
+  const request = useMemo(() => parseOAuthRequest(search), [search]);
+
+  let content;
+  if (request.userCode) {
+    content = <DeviceAuthorization userCode={request.userCode} />;
+  } else if (request.clientID) {
+    content = <AuthorizationConsent request={request} />;
+  } else {
+    content = <DeviceCodeLanding />;
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>应用授权 - 复旦附中学生 ID</title>
+      </Helmet>
+      {content}
+    </>
+  );
+}

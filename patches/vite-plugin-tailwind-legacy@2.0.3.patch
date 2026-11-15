@@ -1,0 +1,13 @@
+diff --git a/vite-plugin-tailwind-legacy.js b/vite-plugin-tailwind-legacy.js
+index e8f75e785e5ea7c006615a57f23fd557b9c8f6a0..0881c53aff30b11460d88d54e6ba30b45c6e7810 100644
+--- a/vite-plugin-tailwind-legacy.js
++++ b/vite-plugin-tailwind-legacy.js	
+@@ -953,7 +953,7 @@ export default function TailwindLegacyPlugin(options = {}) {
+ 
+       const cssFiles = [];
+       findFiles(absoluteBuildDir, (filePath) => {
+-        if (filePath.endsWith(".css") && !filePath.endsWith(outputCSSName) && path.resolve(path.dirname(filePath)) !== path.resolve(absoluteAssetsDir)) {
++        if (filePath.endsWith(".css") && !filePath.endsWith(outputCSSName)) {
+           cssFiles.push(filePath);
+         }
+       });

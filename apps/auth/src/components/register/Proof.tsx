@@ -1,5 +1,5 @@
 import { Button, Card, Chip } from "@heroui/react";
-import { DropZone } from "@repo/commons/components/DropZone.tsx";
+import { DropZone } from "@repo/shared/components/DropZone.tsx";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -8,9 +8,11 @@ interface Props {
   onBack: () => void;
 }
 
-const UPLOAD_CONFIG = {
-  maxSize: 5 << 20, // 2MB
-  accept: ["image/png", "image/jpeg", "image/heif"],
+// 后端注册接口的请求体上限为 5 MiB，multipart 还会带上表单字段，
+// 因此文件本身限制为 4 MiB，避免用户填完整张表单后才收到 413。
+const PROOF_IMAGE_CONFIG = {
+  maxSize: 4 << 20,
+  accept: ["image/jpeg", "image/png", "image/webp"],
   maxCount: 1,
 };
 
@@ -27,7 +29,7 @@ function Proof({ initial, onNext, onBack }: Props) {
     const url = URL.createObjectURL(proofImage);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [proofImage, setPreviewUrl]);
+  }, [proofImage]);
 
   return (
     <>
@@ -36,10 +38,10 @@ function Proof({ initial, onNext, onBack }: Props) {
         <Card.Description>
           请提供能证明身份的材料，例如校园卡照片、校园网个人页面截图等
         </Card.Description>
-        <Chip className="absolute top-0 right-0">5 / 6</Chip>
+        <Chip className="absolute top-0 right-0">4 / 5</Chip>
       </Card.Header>
       <Card.Content className="flex w-md max-w-full flex-col gap-4">
-        <DropZone config={UPLOAD_CONFIG} onChange={(files) => setProofImage(files[0] ?? null)}>
+        <DropZone config={PROOF_IMAGE_CONFIG} onChange={(files) => setProofImage(files[0] ?? null)}>
           <DropZone.Area>
             {proofImage ? (
               <div className="flex w-full flex-col items-center gap-3">

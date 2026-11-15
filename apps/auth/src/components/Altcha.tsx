@@ -4,7 +4,7 @@ import "altcha";
 import "altcha/i18n/zh-cn";
 import "altcha/types/react";
 import "altcha/themes/business.min.css";
-import { API_AUTH } from "@repo/commons/api/types.ts";
+import { API_STUDENT_ID } from "@repo/shared/api/types.ts";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 interface Props {
@@ -57,7 +57,7 @@ const Altcha = forwardRef<AltchaHandle, Props>(({ onPayload }, ref) => {
   return (
     <altcha-widget
       ref={widgetRef}
-      challenge={new URL("auth/challenge", API_AUTH).toString()}
+      challenge={new URL("auth/challenge", API_STUDENT_ID).toString()}
       theme="business"
       language="zh-cn"
     ></altcha-widget>

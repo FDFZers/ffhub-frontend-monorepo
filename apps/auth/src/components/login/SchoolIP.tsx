@@ -1,4 +1,4 @@
-import type { School } from "@repo/commons/api/user/types.ts";
+import type { School } from "@repo/shared/api/user/types.ts";
 
 import { Button, Card } from "@heroui/react";
 import clsx from "clsx";

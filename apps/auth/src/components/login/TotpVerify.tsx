@@ -1,5 +1,5 @@
 import { Button, Card, InputOTP } from "@heroui/react";
-import { REGEXP_ONLY_DIGITS_AND_CHARS } from "@heroui/react/input-otp";
+import { REGEXP_ONLY_DIGITS } from "@heroui/react/input-otp";
 import { useState } from "react";
 
 interface Props {
@@ -23,8 +23,8 @@ function TotpVerify({ loading, onSubmit, onBack }: Props) {
             maxLength={6}
             variant="secondary"
             value={code}
-            onChange={(c) => setCode(c.toUpperCase())}
-            pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+            onChange={setCode}
+            pattern={REGEXP_ONLY_DIGITS}
             className="mx-auto w-auto"
           >
             <InputOTP.Group>

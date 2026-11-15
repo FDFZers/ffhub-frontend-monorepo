@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
+    "build": "vp run -r build",
+    "dev": "vp run -r dev",
+    "lint": "vp run -r lint",
+    "lint:fix": "vp run -r lint:fix",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "prepare": "vp config"
@@ -15,7 +15,6 @@
     "@tailwindcss/vite": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "portless": "catalog:",
-    "turbo": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-tailwind-legacy": "catalog:",
