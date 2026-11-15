@@ -1,0 +1,32 @@
+when:
+  branch: main
+  event: [push, manual]
+  path:
+    include:
+      - "apps/auth/**"
+      - "packages/shared/**"
+      - "patches/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - ".woodpecker/deploy-auth.yml"
+
+steps:
+  build:
+    image: node:26
+    commands:
+      - npm install -g pnpm@12.14.0
+      - pnpm install --frozen-lockfile
+      - pnpm --filter ffhub-auth build
+
+  deploy:
+    image: alpine:3.20
+    volumes:
+      - /opt/1panel/www/sites/ffhub-auth/index:/deploy
+    commands:
+      - apk add --no-cache rsync
+      - mkdir -p /deploy
+      # 先清空旧文件，再同步新构建产物
+      - rsync -a --delete-before apps/auth/dist/ /deploy/
