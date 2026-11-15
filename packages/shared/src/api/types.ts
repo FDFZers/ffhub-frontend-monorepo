@@ -1,9 +1,9 @@
 export const API_STUDENT_ID = import.meta.env.DEV
   ? new URL("/api/user/v1/", location.origin).toString()
-  : "https://student_id.fdfz.top/api/v1/";
+  : "https://student-id.fdfz.top/api/v1/";
 export const API_STUDENT_ID_INTERNAL = import.meta.env.DEV
   ? new URL("/api/user/internal/", location.origin).toString()
-  : "https://student_id.fdfz.top/api/internal/";
+  : "https://student-id.fdfz.top/api/internal/";
 
 export const ACCESS_TOKEN_KEY = "access_token";
 
