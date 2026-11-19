@@ -1,5 +1,3 @@
-import type { School } from "../user/types.ts";
-
 import { request } from "../api.ts";
 import { API_STUDENT_ID } from "../types.ts";
 
@@ -20,7 +18,8 @@ export function getVersion(): Promise<VersionResponse> {
 
 export interface IPInfoResponse {
   ip: string;
-  type: School | "other";
+  /** 后端配置的校园网展示文本；null 表示不在校园网。 */
+  type: string | null;
 }
 
 export function getIPInfo(): Promise<IPInfoResponse> {

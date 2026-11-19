@@ -8,7 +8,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 
 import AuthLayout from "./layouts/AuthLayout.tsx";
 import Login from "./views/Login.tsx";
-import OAuthRequest from "./views/OAuthRequest.tsx";
+import OAuthAuthorize from "./views/OAuthAuthorize.tsx";
+import OAuthDevice from "./views/OAuthDevice.tsx";
 import Register from "./views/Register.tsx";
 import RegStatus from "./views/RegStatus.tsx";
 import ResetPassword from "./views/ResetPassword.tsx";
@@ -45,9 +46,8 @@ export default function App() {
 
             <Route element={<RequireAuth loginURL="/login" />}>
               <Route element={<AuthLayout />}>
-                <Route path="/oauth" element={<OAuthRequest />} />
-                <Route path="/oauth/authorize" element={<OAuthRequest />} />
-                <Route path="/oauth/device" element={<OAuthRequest />} />
+                <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
+                <Route path="/oauth/device" element={<OAuthDevice />} />
               </Route>
             </Route>
 

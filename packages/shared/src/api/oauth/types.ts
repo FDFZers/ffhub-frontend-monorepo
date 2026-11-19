@@ -4,6 +4,8 @@ import type { AppInfo } from "../apps/types.ts";
 export interface OAuthPermissionInfo {
   permission: string;
   description: string;
+  /** 定义该权限的应用名称（权限命名空间所有者）。 */
+  source_app?: string;
   granted: boolean;
   reason?: string;
 }

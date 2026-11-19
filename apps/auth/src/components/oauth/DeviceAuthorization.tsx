@@ -1,22 +1,15 @@
 import type { DeviceAuthorizationPreview } from "@repo/shared/api/oauth/types.ts";
 
-import { Alert, Button, Card, Chip, Separator, Spinner, toast, Typography } from "@heroui/react";
+import { toast } from "@heroui/react";
 import { decideDevice, getDevicePreview } from "@repo/shared/api/oauth/api.ts";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { displayUserCode, formatDateTime } from "../../utils/oauth.ts";
-import AppSummary from "./AppSummary.tsx";
-import PermissionChecklist from "./PermissionChecklist.tsx";
+import OAuthAuthorizationCard from "./OAuthAuthorizationCard.tsx";
+import OAuthDecisionButtons, { type OAuthDecisionAction } from "./OAuthDecisionButtons.tsx";
+import OAuthResultCard from "./OAuthResultCard.tsx";
 
 type Decision = "approved" | "denied" | null;
-type PendingAction = "approve" | "deny" | null;
-
-const STATUS_META = {
-  pending: { label: "待确认", color: "warning" },
-  approved: { label: "已授权", color: "success" },
-  denied: { label: "已拒绝", color: "danger" },
-} as const;
 
 interface DeviceAuthorizationProps {
   userCode: string;
@@ -28,30 +21,19 @@ export default function DeviceAuthorization({ userCode }: DeviceAuthorizationPro
   const [preview, setPreview] = useState<DeviceAuthorizationPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [decision, setDecision] = useState<Decision>(null);
-  const [action, setAction] = useState<PendingAction>(null);
+  const [action, setAction] = useState<OAuthDecisionAction>(null);
 
   useEffect(() => {
     let cancelled = false;
-
     setLoading(true);
     setLoadError(null);
     setPreview(null);
-    setSelected(new Set());
     setDecision(null);
 
     getDevicePreview(userCode)
       .then((data) => {
-        if (cancelled) return;
-        setPreview(data);
-        setSelected(
-          new Set(
-            data.permissions
-              .filter((permission) => permission.granted)
-              .map((permission) => permission.permission),
-          ),
-        );
+        if (!cancelled) setPreview(data);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -69,17 +51,13 @@ export default function DeviceAuthorization({ userCode }: DeviceAuthorizationPro
     };
   }, [userCode]);
 
-  const togglePermission = useCallback((permission: string, checked: boolean) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (checked) {
-        next.add(permission);
-      } else {
-        next.delete(permission);
-      }
-      return next;
-    });
-  }, []);
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      void navigate("/oauth/device");
+    }
+  }, [navigate]);
 
   const decide = useCallback(
     async (approve: boolean) => {
@@ -88,17 +66,7 @@ export default function DeviceAuthorization({ userCode }: DeviceAuthorizationPro
       setAction(approve ? "approve" : "deny");
 
       try {
-        const permissions = approve
-          ? preview.permissions
-              .filter((permission) => permission.granted && selected.has(permission.permission))
-              .map((permission) => permission.permission)
-          : [];
-
-        await decideDevice(
-          approve
-            ? { user_code: preview.user_code, approve: true, permissions }
-            : { user_code: preview.user_code, approve: false },
-        );
+        await decideDevice({ user_code: preview.user_code, approve });
         setDecision(approve ? "approved" : "denied");
       } catch (error: unknown) {
         console.error("[FFHub Auth] 设备授权操作失败", error);
@@ -109,153 +77,32 @@ export default function DeviceAuthorization({ userCode }: DeviceAuthorizationPro
         setAction(null);
       }
     },
-    [action, preview, selected],
+    [action, preview],
   );
 
-  if (loading) {
-    return (
-      <>
-        <Card.Header className="mb-2">
-          <Card.Title>设备授权</Card.Title>
-          <Card.Description>正在读取设备授权信息…</Card.Description>
-        </Card.Header>
-        <Card.Content className="flex w-md max-w-full items-center justify-center py-12">
-          <Spinner size="lg" />
-        </Card.Content>
-      </>
-    );
-  }
+  const status = decision ?? preview?.status ?? null;
 
-  if (loadError || !preview) {
-    return (
-      <>
-        <Card.Header className="mb-2">
-          <Card.Title>设备授权</Card.Title>
-          <Card.Description>无法读取设备授权信息</Card.Description>
-        </Card.Header>
-        <Card.Content className="flex w-md max-w-full flex-col gap-3">
-          <Typography type="body-sm" color="muted">
-            {loadError ?? "授权码不存在或已过期，请在设备上重新获取授权码。"}
-          </Typography>
-          <Button className="w-full" variant="tertiary" onPress={() => navigate("/oauth")}>
-            重新输入授权码
-          </Button>
-        </Card.Content>
-      </>
-    );
+  if (status === "approved" || status === "denied") {
+    return <OAuthResultCard status={status} />;
   }
-
-  const status = decision ?? preview.status;
-  const meta = STATUS_META[status];
-  const permissionsDisabled = action !== null;
-  const expiresAt = formatDateTime(preview.expires_at);
 
   return (
-    <>
-      <Card.Header className="mb-2">
-        <Card.Title>设备授权</Card.Title>
-        <Card.Description>
-          {status === "pending" ? "请确认设备上的授权请求" : "设备授权处理结果"}
-        </Card.Description>
-      </Card.Header>
-
-      <Card.Content className="flex w-md max-w-full flex-col gap-4">
-        <AppSummary app={preview.app} />
-
-        <div className="bg-surface-secondary flex flex-col items-center gap-1 rounded-3xl px-4 py-3">
-          <Typography type="body-xs" color="muted">
-            设备授权码
-          </Typography>
-          <Typography type="h2" className="font-mono tracking-widest">
-            {displayUserCode(preview.user_code)}
-          </Typography>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <Typography type="body-sm" color="muted">
-              状态
-            </Typography>
-            <Chip color={meta.color} size="sm" variant="soft">
-              {meta.label}
-            </Chip>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <Typography type="body-sm" color="muted">
-              有效期至
-            </Typography>
-            <Typography type="body-sm">{expiresAt}</Typography>
-          </div>
-        </div>
-
-        {status === "approved" && (
-          <Alert status="success">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>授权成功</Alert.Title>
-              <Alert.Description>已完成设备授权，可以返回设备继续操作。</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        )}
-
-        {status === "denied" && (
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>已拒绝授权</Alert.Title>
-              <Alert.Description>设备上的授权请求已取消，应用不会获得任何权限。</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        )}
-
-        {status === "pending" && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-1">
-              <Typography type="h4" className="m-0 text-sm font-medium">
-                请求的权限
-              </Typography>
-              <Typography type="body-xs" color="muted">
-                仅勾选的权限会授予设备上的应用。
-              </Typography>
-            </div>
-            <PermissionChecklist
-              disabled={permissionsDisabled}
-              permissions={preview.permissions}
-              selected={selected}
-              onToggle={togglePermission}
-            />
-          </>
-        )}
-      </Card.Content>
-
-      {status === "pending" ? (
-        <Card.Footer className="mt-4 flex gap-2">
-          <Button
-            className="w-full"
-            isDisabled={action !== null}
-            isPending={action === "deny"}
-            variant="tertiary"
-            onPress={() => void decide(false)}
-          >
-            拒绝
-          </Button>
-          <Button
-            className="w-full"
-            isDisabled={action !== null}
-            isPending={action === "approve"}
-            onPress={() => void decide(true)}
-          >
-            授权
-          </Button>
-        </Card.Footer>
-      ) : (
-        <Card.Footer className="mt-4">
-          <Button className="w-full" variant="tertiary" onPress={() => navigate("/oauth")}>
-            授权其他设备
-          </Button>
-        </Card.Footer>
-      )}
-    </>
+    <OAuthAuthorizationCard
+      app={preview?.app}
+      error={loadError}
+      footer={
+        preview ? (
+          <OAuthDecisionButtons
+            action={action}
+            onApprove={() => void decide(true)}
+            onDeny={() => void decide(false)}
+          />
+        ) : null
+      }
+      loading={loading}
+      loadingText="正在加载设备授权信息…"
+      onBack={handleBack}
+      permissions={preview?.permissions}
+    />
   );
 }

@@ -97,6 +97,31 @@ export async function verifyQQ(sessionID: string, code: string): Promise<void> {
   });
 }
 
+export interface StepUpInitResponse {
+  session_id: string;
+  "2fa": TwoFactorMethod[];
+  passed: boolean;
+}
+
+/** 为敏感操作发起提权：服务端会强制启用全部已绑定的二次验证方式。 */
+export function stepUpInit(): Promise<StepUpInitResponse> {
+  return request<StepUpInitResponse>({
+    method: "POST",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: "/auth/stepup/init",
+  });
+}
+
+/** 二次验证通过后签发短时效提权令牌（写入 HttpOnly Cookie）。 */
+export async function stepUpFinalize(sessionID: string): Promise<void> {
+  await request({
+    method: "POST",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: "/auth/stepup/finalize",
+    data: { session_id: sessionID },
+  });
+}
+
 export interface PasswordResetInitResponse {
   session_id: string;
   "2fa": TwoFactorMethod[];

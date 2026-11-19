@@ -13,6 +13,6 @@ updates:
 
   # Shared
   - package-ecosystem: "npm"
-    directory: "/package/shared"
+    directory: "/packages/shared"
     schedule:
       interval: "weekly"

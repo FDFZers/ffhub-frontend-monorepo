@@ -158,37 +158,28 @@ export default function ResetPassword() {
   );
 
   const handleQQVerify = useCallback(
-    async (code: string, silent = false) => {
+    async (code: string) => {
       if (!sessionID) return;
-      if (!silent) {
-        setLoading(true);
-      }
       try {
         await verifyQQ(sessionID, code);
         setStep({ kind: "password" });
       } catch (e: unknown) {
-        if (!silent) console.error("[FFHub Auth] QQ 验证失败", e);
-        const code = (e as { code?: string } | null)?.code;
+        console.warn("[FFHub Auth] QQ 验证未通过", e);
+        const errorCode = (e as { code?: string } | null)?.code;
         const message = e instanceof Error ? e.message : "QQ 验证失败";
         if (message.includes("二次验证已通过")) {
           setStep({ kind: "password" });
           return;
         }
-        if (code === "not_found") {
+        if (errorCode === "not_found") {
           toast.danger("找回密码会话已过期", { description: message });
           restart();
           return;
         }
-        if (code === "rate_limit_exceeded" && message.includes("次数过多")) {
+        if (errorCode === "rate_limit_exceeded" && message.includes("次数过多")) {
           toast.danger("QQ 验证失败", { description: message });
           restart();
-          return;
         }
-        if (!silent) {
-          toast.danger("QQ 验证失败", { description: message });
-        }
-      } finally {
-        if (!silent) setLoading(false);
       }
     },
     [sessionID, restart],
@@ -255,7 +246,7 @@ export default function ResetPassword() {
         <QQCodeVerify
           code={step.code}
           loading={loading}
-          onVerify={(silent) => handleQQVerify(step.code, silent)}
+          onVerify={() => handleQQVerify(step.code)}
           onBack={backToIdentifier}
         />
       )}

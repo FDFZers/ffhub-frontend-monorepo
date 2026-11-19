@@ -1,9 +1,10 @@
 import type { StatusResponse } from "@repo/shared/api/reg_req/api.ts";
 
 import { Button, Card, Separator, Surface, Typography } from "@heroui/react";
-import dayjs from "dayjs";
 import { LucideCircleCheck, LucideCircleX, LucideClock } from "lucide-react";
 import { useNavigate } from "react-router";
+
+import { formatDateTime } from "../../utils/datetime.ts";
 
 interface Props {
   result: StatusResponse;
@@ -33,9 +34,7 @@ function Result({ result, onBack }: Props) {
 
   const meta = STATUS_META[result.status];
   const Icon = meta.icon;
-  const reviewedAt = result.reviewed_at
-    ? dayjs(result.reviewed_at).format("YYYY-MM-DD HH:mm:ss")
-    : null;
+  const reviewedAt = result.reviewed_at ? formatDateTime(result.reviewed_at, true) : null;
   const reviewComment = result.review_comment?.trim() || null;
 
   const primaryAction =

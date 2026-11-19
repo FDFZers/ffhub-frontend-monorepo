@@ -1,65 +1,40 @@
-import { Button, Card, CloseButton, Surface, toast, Typography } from "@heroui/react";
+import { Card, CloseButton, Spinner, Surface, toast, Typography } from "@heroui/react";
 import Tooltip from "@repo/shared/components/Tooltip.tsx";
 import { LucideUndo2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /** 自动轮询间隔。 */
-const POLL_INTERVAL_MS = 10_000;
-/** 服务端对同一 QQ 的拉取有频率限制，两次验证至少间隔 5 秒。 */
-const ATTEMPT_THROTTLE_MS = 5_000;
+const POLL_INTERVAL_MS = 5_000;
 
 interface Props {
   code: string;
   loading?: boolean;
-  /** silent 为 true 时表示自动轮询，父组件不应展示普通失败。 */
-  onVerify: (silent?: boolean) => void | Promise<void>;
+  onVerify: () => void | Promise<void>;
   onBack: () => void;
 }
 
-function QQCodeVerify({ code, loading, onVerify, onBack }: Props) {
-  const [verifying, setVerifying] = useState(false);
-  const verifyTimerRef = useRef<number | null>(null);
+function QQCodeVerify({ code, onVerify, onBack }: Props) {
   const inFlightRef = useRef(false);
-  const lastAttemptRef = useRef(0);
   const onVerifyRef = useRef(onVerify);
 
   useEffect(() => {
     onVerifyRef.current = onVerify;
   }, [onVerify]);
 
-  useEffect(() => {
-    return () => {
-      if (verifyTimerRef.current !== null) window.clearTimeout(verifyTimerRef.current);
-    };
-  }, []);
-
-  const triggerVerify = useCallback((silent: boolean) => {
+  const triggerVerify = useCallback(() => {
     if (inFlightRef.current) return;
-    const now = Date.now();
-    if (now - lastAttemptRef.current < ATTEMPT_THROTTLE_MS) return;
 
-    lastAttemptRef.current = now;
     inFlightRef.current = true;
-    void Promise.resolve(onVerifyRef.current(silent)).finally(() => {
+    void Promise.resolve(onVerifyRef.current()).finally(() => {
       inFlightRef.current = false;
     });
   }, []);
 
-  // 每 10 秒自动检测一次，成功后会由父组件切走页面。
+  // 每 5 秒自动检测一次，成功后会由父组件切走页面。
   useEffect(() => {
-    const timer = window.setInterval(() => triggerVerify(true), POLL_INTERVAL_MS);
+    const timer = window.setInterval(triggerVerify, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [triggerVerify]);
-
-  const handleManualVerify = () => {
-    setVerifying(true);
-    if (verifyTimerRef.current !== null) window.clearTimeout(verifyTimerRef.current);
-    verifyTimerRef.current = window.setTimeout(() => {
-      verifyTimerRef.current = null;
-      setVerifying(false);
-    }, ATTEMPT_THROTTLE_MS);
-    triggerVerify(false);
-  };
 
   const handleCopy = async () => {
     try {
@@ -75,7 +50,9 @@ function QQCodeVerify({ code, loading, onVerify, onBack }: Props) {
     <>
       <Card.Header className="relative mb-2">
         <Card.Title>QQ 验证</Card.Title>
-        <Card.Description>请使用 QQ 私信向 FFHub 机器人发送以下验证码：</Card.Description>
+        <Card.Description>
+          请<strong>点击下方复制</strong>验证码并 QQ 私信发送给 FFHub 机器人
+        </Card.Description>
         <CloseButton className="absolute top-2 right-2" aria-label="返回" onPress={onBack}>
           <LucideUndo2 />
         </CloseButton>
@@ -96,18 +73,19 @@ function QQCodeVerify({ code, loading, onVerify, onBack }: Props) {
               </Typography>
             </Surface>
           </Tooltip.Trigger>
-          <Tooltip.Content>点击以复制 ID</Tooltip.Content>
+          <Tooltip.Content>点击以复制验证码</Tooltip.Content>
         </Tooltip>
       </Card.Content>
-      <Card.Footer className="mt-2 flex flex-col gap-2">
-        <Button
-          className="w-full"
-          isPending={verifying || loading}
-          isDisabled={verifying || loading}
-          onPress={handleManualVerify}
+      <Card.Footer className="mt-2">
+        <div
+          aria-live="polite"
+          className="text-muted flex w-full flex-col items-center justify-center gap-2"
         >
-          {verifying || loading ? "验证中…" : "我已发送验证码"}
-        </Button>
+          <div className="flex items-center gap-2 text-sm">
+            <Spinner size="sm" />
+            <span>等待中…</span>
+          </div>
+        </div>
       </Card.Footer>
     </>
   );

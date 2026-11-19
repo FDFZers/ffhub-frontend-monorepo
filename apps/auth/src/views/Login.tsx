@@ -1,5 +1,4 @@
 import type { TwoFactorMethod } from "@repo/shared/api/auth/types.ts";
-import type { School } from "@repo/shared/api/user/types.ts";
 
 import { toast } from "@heroui/react";
 import {
@@ -12,7 +11,6 @@ import {
   verifyTOTP,
 } from "@repo/shared/api/auth/api.ts";
 import { getIPInfo } from "@repo/shared/api/misc/api.ts";
-import { SPACE_URL } from "@repo/shared/router/urls.ts";
 import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 
@@ -22,9 +20,10 @@ import SchoolIP from "../components/login/SchoolIP.tsx";
 import Select2FA from "../components/login/Select2FA.tsx";
 import TotpVerify from "../components/login/TotpVerify.tsx";
 import QQCodeVerify from "../components/QQCodeVerify.tsx";
+import { resolvePostLoginURL } from "../utils/redirect.ts";
 
 type Step =
-  | { kind: "school-ip"; school: School }
+  | { kind: "school-ip"; label: string }
   | { kind: "credentials" }
   | { kind: "select-2fa"; methods: TwoFactorMethod[] }
   | { kind: "email-verify" }
@@ -42,10 +41,10 @@ export default function Login() {
     void (async () => {
       try {
         const info = await getIPInfo();
-        const school = info.type;
-        if (cancelled || school === "other") return;
+        const label = info.type;
+        if (cancelled || !label) return;
         setStep((current) =>
-          current.kind === "credentials" ? { kind: "school-ip", school } : current,
+          current.kind === "credentials" ? { kind: "school-ip", label } : current,
         );
       } catch {}
     })();
@@ -81,7 +80,7 @@ export default function Login() {
         }
 
         // 登录已经成功（Cookie 已写入），直接跳转，后续令牌校验由目标应用完成。
-        window.location.replace(SPACE_URL);
+        window.location.replace(resolvePostLoginURL(window.location.search));
         return true;
       } finally {
         setLoading(false);
@@ -238,16 +237,13 @@ export default function Login() {
     }
   };
 
-  const handleQQVerify = async (code: string, silent = false) => {
+  const handleQQVerify = async (code: string) => {
     if (!sessionID) return;
-    if (!silent) {
-      setLoading(true);
-    }
     try {
       await verifyQQ(sessionID, code);
       await finalize(sessionID);
     } catch (e: unknown) {
-      if (!silent) console.error("[FFHub Auth] QQ 验证失败", e);
+      console.warn("[FFHub Auth] QQ 验证未通过", e);
       const code = (e as { code?: string } | null)?.code;
       const message = e instanceof Error ? e.message : "QQ 验证失败";
       if (message.includes("二次验证已通过")) {
@@ -262,11 +258,7 @@ export default function Login() {
       if (code === "rate_limit_exceeded" && message.includes("次数过多")) {
         toast.danger("QQ 验证失败", { description: message });
         reset();
-      } else if (!silent) {
-        toast.danger("QQ 验证失败", { description: message });
       }
-    } finally {
-      if (!silent) setLoading(false);
     }
   };
 
@@ -306,7 +298,7 @@ export default function Login() {
         <title>登录 - 复旦附中学生 ID</title>
       </Helmet>
       {step.kind === "school-ip" && (
-        <SchoolIP school={step.school} onSubmit={() => setStep({ kind: "credentials" })} />
+        <SchoolIP label={step.label} onSubmit={() => setStep({ kind: "credentials" })} />
       )}
       {step.kind === "credentials" && (
         <PasswordVerify loading={loading} onSubmit={handleCredentials} />
@@ -338,7 +330,7 @@ export default function Login() {
         <QQCodeVerify
           code={step.code}
           loading={loading}
-          onVerify={(silent) => handleQQVerify(step.code, silent)}
+          onVerify={() => handleQQVerify(step.code)}
           onBack={backFromMethod}
         />
       )}

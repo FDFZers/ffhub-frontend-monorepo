@@ -16,6 +16,7 @@ catalog:
   "@types/react": ^19.3.0
   "@types/react-dom": ^19.3.0
   "@types/react-helmet": ^6.1.11
+  "@vitejs/plugin-legacy": ^8.2.4
   "@vitejs/plugin-react": ^6.3.0
   altcha: ^3.4.0
   axios: ^1.20.0
@@ -35,6 +36,7 @@ catalog:
   react-router: ^8.4.0
   tailwindcss: ^4.3.3
   typescript: ^7.0.2
+  ua-parser-js: ^2.0.10
   vite: npm:@voidzero-dev/vite-plus-core@1.6.0
   vite-plugin-tailwind-legacy: ^2.0.3
   vite-plus: 1.6.0
@@ -49,3 +51,5 @@ peerDependencyRules:
     vite: "*"
 patchedDependencies:
   vite-plugin-tailwind-legacy@2.0.3: patches/vite-plugin-tailwind-legacy@2.0.3.patch
+allowBuilds:
+  core-js: true
