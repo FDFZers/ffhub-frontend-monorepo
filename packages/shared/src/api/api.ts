@@ -88,7 +88,9 @@ function shouldAttemptRefresh(
   if (!config) return false;
   if (config._retried || config.skipRefresh) return false;
   if (apiError.status !== 401) return false;
-  if (apiError.code !== "token_expired") return false;
+  // invalid_token 也尝试刷新：令牌结构升级（如权限改存 ID）会让旧令牌解析失败，
+  // 此时用 session_token 换发新令牌即可恢复，无需用户重新登录。
+  if (apiError.code !== "token_expired" && apiError.code !== "invalid_token") return false;
 
   return true;
 }

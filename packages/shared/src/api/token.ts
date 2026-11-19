@@ -1,11 +1,11 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
 import cookies from "js-cookie";
 
 import type { RegisteredTokenClaims } from "./auth/types.ts";
 
-import { ACCESS_TOKEN_KEY, API_STUDENT_ID } from "./types.ts";
+import { ACCESS_TOKEN_KEY, API_STUDENT_ID_INTERNAL } from "./types.ts";
 
-const JWKS = createRemoteJWKSet(new URL("auth/jwks", API_STUDENT_ID));
+/** 访问令牌内只保存权限 ID 与少量元数据，权限串与应用列表由 claims 接口解析。 */
+const CLAIMS_URL = new URL("auth/claims", API_STUDENT_ID_INTERNAL).toString();
 
 const SESSION_HINT_KEY = "ffhub.session_hint";
 
@@ -55,12 +55,12 @@ export async function verifyAccessToken(): Promise<RegisteredTokenClaims | undef
   const token = readAccessToken();
   if (!token) return undefined;
 
-  const { payload } = await jwtVerify(token, JWKS, {
-    requiredClaims: ["exp"],
-    issuer: "fdfz-student-id",
-    algorithms: ["RS512"],
-    clockTolerance: 5,
+  // 签名与有效期由服务端校验；这里只取回可读声明（权限串、名下应用等）。
+  const res = await fetch(CLAIMS_URL, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
+  if (!res.ok) return undefined;
 
-  return payload as RegisteredTokenClaims;
+  return (await res.json()) as RegisteredTokenClaims;
 }
