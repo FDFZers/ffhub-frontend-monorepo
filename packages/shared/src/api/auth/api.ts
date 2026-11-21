@@ -1,3 +1,4 @@
+import type { DateString } from "../../utils/types.ts";
 import type { School, UserType } from "../user/types.ts";
 import type { TwoFactorMethod } from "./types.ts";
 
@@ -12,11 +13,23 @@ export interface LoginInitRequest {
   altcha_payload: string;
 }
 
-export interface LoginInitResponse {
+/** 正常创建登录会话的响应。 */
+export interface LoginInitSessionResponse {
+  banned?: false;
   session_id: string;
   "2fa": TwoFactorMethod[];
   passed: boolean;
 }
+
+/** 账号被封禁时 init 直接返回封禁信息，不创建鉴权会话。 */
+export interface LoginInitBannedResponse {
+  banned: true;
+  reason: string;
+  /** 解封时间；永久封禁时为 null。 */
+  end_time: DateString | null;
+}
+
+export type LoginInitResponse = LoginInitSessionResponse | LoginInitBannedResponse;
 
 export function loginInit(req: LoginInitRequest): Promise<LoginInitResponse> {
   return request<LoginInitResponse>({
@@ -28,13 +41,18 @@ export function loginInit(req: LoginInitRequest): Promise<LoginInitResponse> {
   });
 }
 
-export async function loginFinalize(sessionID: string): Promise<void> {
+/**
+ * 完成登录。
+ * 管理员重置密码后，首次调用会返回 password_reset_required 错误，
+ * 此时需携带用户设置的新密码再次调用。
+ */
+export async function loginFinalize(sessionID: string, password?: string): Promise<void> {
   await request({
     method: "POST",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: "/auth/login/finalize",
     withToken: false,
-    data: { session_id: sessionID },
+    data: password === undefined ? { session_id: sessionID } : { session_id: sessionID, password },
   });
   markSessionHint();
 }

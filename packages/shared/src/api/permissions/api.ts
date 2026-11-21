@@ -3,9 +3,11 @@ import type {
   PermissionDefinition,
   PermissionImpliesResponse,
   PermissionReloadStatus,
+  RolePermission,
   UserGrant,
   UserGroup,
   UserGroupMember,
+  UserGroupSearchResult,
 } from "./types.ts";
 
 import { request } from "../api.ts";
@@ -104,6 +106,7 @@ export function getPermissionImplies(
   });
 }
 
+/** 整体替换直接继承关系；后端接收 permission 对象数组，不带有效期的项按永久授权处理。 */
 export function setPermissionImplies(
   appID: number,
   permissionID: number,
@@ -113,7 +116,7 @@ export function setPermissionImplies(
     method: "PUT",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: `${appBase(appID)}/definitions/${permissionID}/implies`,
-    data: { implies },
+    data: { implies: implies.map((permission) => ({ permission })) },
   });
 }
 
@@ -135,8 +138,8 @@ export function getUserGroupSearchInfo(appID?: number): Promise<SearchInfo> {
 export function searchUserGroups(
   body: SearchRequest,
   appID?: number,
-): Promise<SearchResponse<UserGroup>> {
-  return request<SearchResponse<UserGroup>>({
+): Promise<SearchResponse<UserGroupSearchResult>> {
+  return request<SearchResponse<UserGroupSearchResult>>({
     method: "POST",
     baseURL: API_STUDENT_ID_INTERNAL,
     url:
@@ -200,37 +203,39 @@ export async function deleteUserGroup(appID: number, groupID: number): Promise<v
 export function listUserGroupPermissions(
   appID: number,
   groupID: number,
-): Promise<SearchResponse<PermissionDefinition>> {
-  return request<SearchResponse<PermissionDefinition>>({
+): Promise<SearchResponse<RolePermission>> {
+  return request<SearchResponse<RolePermission>>({
     method: "GET",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: `${groupBase(appID, groupID)}/permissions`,
   });
 }
 
+/** 整体替换组权限；后端接收 permission 对象数组，不带有效期的项按永久授权处理。 */
 export function setUserGroupPermissions(
   appID: number,
   groupID: number,
   permissions: string[],
-): Promise<SearchResponse<PermissionDefinition>> {
-  return request<SearchResponse<PermissionDefinition>>({
+): Promise<SearchResponse<RolePermission>> {
+  return request<SearchResponse<RolePermission>>({
     method: "PUT",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: `${groupBase(appID, groupID)}/permissions`,
-    data: { permissions },
+    data: { permissions: permissions.map((permission) => ({ permission })) },
   });
 }
 
+/** 追加组权限；后端接收 permission 对象数组，不带有效期的项按永久授权处理。 */
 export function addUserGroupPermissions(
   appID: number,
   groupID: number,
   permissions: string[],
-): Promise<SearchResponse<PermissionDefinition>> {
-  return request<SearchResponse<PermissionDefinition>>({
+): Promise<SearchResponse<RolePermission>> {
+  return request<SearchResponse<RolePermission>>({
     method: "POST",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: `${groupBase(appID, groupID)}/permissions`,
-    data: { permissions },
+    data: { permissions: permissions.map((permission) => ({ permission })) },
   });
 }
 

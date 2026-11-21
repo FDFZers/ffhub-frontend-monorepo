@@ -5,6 +5,7 @@ import type {
   School,
   UserBanStatus,
   UserProfile,
+  UserType,
   Visibilities,
 } from "./types.ts";
 
@@ -187,6 +188,55 @@ export function searchUsers(body: SearchRequest): Promise<SearchResponse<UserPro
     method: "POST",
     baseURL: API_STUDENT_ID,
     url: "/user/search/query",
+    data: body,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 管理员创建账号 / 重置密码
+// ---------------------------------------------------------------------------
+
+export interface CreateUserRequest {
+  username: string;
+  nickname?: string;
+  type: UserType;
+  student_num?: string;
+  real_name: string;
+  school: School;
+  password: string;
+  /** 是否要求用户下次登录后重设密码，缺省时后端按 true 处理。 */
+  require_password_reset?: boolean;
+}
+
+/** 管理员直接创建账号，不经过注册申请审核；需要 users.create 权限。 */
+export function createUser(body: CreateUserRequest): Promise<UserProfile> {
+  return request<UserProfile>({
+    method: "POST",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: "/user",
+    data: body,
+  });
+}
+
+export interface ResetUserPasswordRequest {
+  new_password: string;
+  /** 是否要求用户下次登录后重设密码，缺省时后端按 true 处理。 */
+  require_password_reset?: boolean;
+}
+
+export interface ResetUserPasswordResponse {
+  password_reset_required: boolean;
+}
+
+/** 管理员重置他人密码并撤销其全部会话；需要 users.password.write 权限。 */
+export function resetUserPassword(
+  userID: number,
+  body: ResetUserPasswordRequest,
+): Promise<ResetUserPasswordResponse> {
+  return request<ResetUserPasswordResponse>({
+    method: "PUT",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: `/security/password/reset/${userID}`,
     data: body,
   });
 }

@@ -74,6 +74,7 @@ export interface UserProfile {
   signature?: string;
   bio?: string;
   visibilities?: Visibilities;
+  password_reset_required?: boolean;
 }
 
 export type Relationship = "none" | "followed" | "following" | "friends";
@@ -107,6 +108,9 @@ export interface User {
   bio: string;
 
   visibilities: Visibilities;
+
+  /** 管理员创建账号或重置密码后，用户下次登录应重设密码。 */
+  password_reset_required: boolean;
 
   created_at: DateString;
   updated_at: DateString;

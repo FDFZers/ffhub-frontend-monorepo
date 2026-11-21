@@ -1,25 +1,67 @@
 import type {
+  BindingEmailResponse,
+  BindingQQResponse,
   BindingsResponse,
+  BindingsStatusResponse,
   ChangePasswordRequest,
   QQBindInitResponse,
   SessionListResponse,
   TOTPBindInitResponse,
+  TwoFactorSettingResponse,
+  UpdateTwoFactorRequest,
 } from "./types.ts";
 
 import { request } from "../api.ts";
-import { API_STUDENT_ID_INTERNAL } from "../types.ts";
+import { API_STUDENT_ID, API_STUDENT_ID_INTERNAL } from "../types.ts";
 
 // ---------------------------------------------------------------------------
 // 绑定信息
 // ---------------------------------------------------------------------------
 
-/** 查询当前账号已绑定的邮箱、QQ 与 TOTP 状态。 */
-export function getBindings(): Promise<BindingsResponse> {
-  return request<BindingsResponse>({
+/** 查询当前账号各类二次验证方式的绑定状态。 */
+export function getBindingsStatus(): Promise<BindingsStatusResponse> {
+  return request<BindingsStatusResponse>({
     method: "GET",
-    baseURL: API_STUDENT_ID_INTERNAL,
-    url: "/security/binding",
+    baseURL: API_STUDENT_ID,
+    url: "/security/binding/status",
   });
+}
+
+/** 查询当前账号已绑定的邮箱；需要 binding.read.email 权限。 */
+export function getBindingEmail(): Promise<BindingEmailResponse> {
+  return request<BindingEmailResponse>({
+    method: "GET",
+    baseURL: API_STUDENT_ID,
+    url: "/security/binding/email",
+  });
+}
+
+/** 查询当前账号已绑定的 QQ；需要 binding.read.qq 权限。 */
+export function getBindingQQ(): Promise<BindingQQResponse> {
+  return request<BindingQQResponse>({
+    method: "GET",
+    baseURL: API_STUDENT_ID,
+    url: "/security/binding/qq",
+  });
+}
+
+/**
+ * 查询当前账号的绑定信息。
+ * 后端把绑定状态与绑定值拆成三个接口：状态决定「是否已绑定」，值需要额外权限才能读取，
+ * 因此绑定值读取失败时只降级为 null，不影响绑定状态的展示。
+ */
+export async function getBindings(): Promise<BindingsResponse> {
+  const [status, email, qq] = await Promise.all([
+    getBindingsStatus(),
+    getBindingEmail().catch(() => null),
+    getBindingQQ().catch(() => null),
+  ]);
+
+  return {
+    email: { bound: status.email, value: email?.email ?? null },
+    qq: { bound: status.qq, value: qq?.qq ?? null },
+    totp: status.totp,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -153,5 +195,29 @@ export async function unbindTOTP(): Promise<void> {
     method: "DELETE",
     baseURL: API_STUDENT_ID_INTERNAL,
     url: "/security/totp",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 登录二次验证开关
+// ---------------------------------------------------------------------------
+
+/** 查询当前账号登录时是否要求二次验证。 */
+export function getTwoFactorSetting(): Promise<TwoFactorSettingResponse> {
+  return request<TwoFactorSettingResponse>({
+    method: "GET",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: "/security/2fa",
+  });
+}
+
+/** 修改登录二次验证开关；关闭后登录只需密码，敏感操作仍要求二次验证。 */
+export async function updateTwoFactorSetting(enabled: boolean): Promise<void> {
+  const body: UpdateTwoFactorRequest = { enabled };
+  await request({
+    method: "PUT",
+    baseURL: API_STUDENT_ID_INTERNAL,
+    url: "/security/2fa",
+    data: body,
   });
 }

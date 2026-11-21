@@ -14,11 +14,41 @@ export interface PermissionDefinition {
   updated_at: DateString;
 }
 
+/** 权限继承边的授权记录，对应后端 handling.ImplicationJSON 的 grant 字段。 */
+export interface PermissionGrantInfo {
+  granted_by_user_id: number | null;
+  valid_from: DateString | null;
+  valid_until: DateString | null;
+  note: string;
+  created_at: DateString;
+  updated_at: DateString;
+}
+
+/** 一条权限继承边：被继承的权限定义及其授权记录。 */
+export interface PermissionImplication {
+  permission: PermissionDefinition;
+  grant: PermissionGrantInfo;
+}
+
 export interface PermissionImpliesResponse {
   permission: PermissionDefinition;
-  direct_implies: PermissionDefinition[];
+  /** 直接继承的权限及其授权记录。 */
+  direct_implies: PermissionImplication[];
+  /** 传递继承的权限定义（不携带授权记录）。 */
   transitive_implies: PermissionDefinition[];
-  implied_by: PermissionDefinition[];
+  /** 反向继承本权限的边。 */
+  implied_by: PermissionImplication[];
+}
+
+/** 用户组权限项，对应后端 handling.RolePermissionJSON。 */
+export interface RolePermission {
+  permission: string;
+  granted_by_user_id: number | null;
+  valid_from: DateString | null;
+  valid_until: DateString | null;
+  note: string;
+  created_at: DateString;
+  updated_at: DateString;
 }
 
 export interface UserGroup {
@@ -27,8 +57,15 @@ export interface UserGroup {
   name: string;
   note: string;
   public: boolean;
+  /** 内置系统用户组，不允许删除。 */
+  system: boolean;
   created_at: DateString;
   updated_at: DateString;
+}
+
+/** 用户组搜索结果：附带该用户组所属应用的命名空间。 */
+export interface UserGroupSearchResult extends UserGroup {
+  app_namespace: string;
 }
 
 export interface UserGroupMember {

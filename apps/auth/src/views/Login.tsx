@@ -4,6 +4,7 @@ import { toast } from "@heroui/react";
 import {
   loginFinalize,
   loginInit,
+  type LoginInitBannedResponse,
   verifyEmail,
   verifyEmailInit,
   verifyQQ,
@@ -15,20 +16,24 @@ import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 
 import EmailCodeVerify from "../components/EmailCodeVerify.tsx";
+import Banned from "../components/login/Banned.tsx";
 import PasswordVerify from "../components/login/PasswordVerify.tsx";
 import SchoolIP from "../components/login/SchoolIP.tsx";
 import Select2FA from "../components/login/Select2FA.tsx";
 import TotpVerify from "../components/login/TotpVerify.tsx";
+import NewPassword from "../components/reset_password/NewPassword.tsx";
 import QQCodeVerify from "../components/QQCodeVerify.tsx";
 import { resolvePostLoginURL } from "../utils/redirect.ts";
 
 type Step =
   | { kind: "school-ip"; label: string }
   | { kind: "credentials" }
+  | { kind: "banned"; ban: LoginInitBannedResponse }
   | { kind: "select-2fa"; methods: TwoFactorMethod[] }
   | { kind: "email-verify" }
   | { kind: "totp" }
-  | { kind: "qq"; code: string };
+  | { kind: "qq"; code: string }
+  | { kind: "reset-password" };
 
 export default function Login() {
   const [step, setStep] = useState<Step>({ kind: "credentials" });
@@ -61,21 +66,29 @@ export default function Login() {
   }, []);
 
   const finalize = useCallback(
-    async (sid: string): Promise<boolean> => {
+    async (sid: string, password?: string): Promise<boolean> => {
       setLoading(true);
       try {
         try {
-          await loginFinalize(sid);
+          await loginFinalize(sid, password);
         } catch (e: unknown) {
           console.error("[FFHub Auth] 登录最终确认失败", e);
           const code = (e as { code?: string } | null)?.code;
           const message = e instanceof Error ? e.message : "登录失败";
+          if (code === "password_reset_required") {
+            // 管理员重置过密码：保留鉴权会话，切到设置新密码步骤后重新 finalize。
+            setSessionID(sid);
+            setStep({ kind: "reset-password" });
+            return false;
+          }
           if (code === "not_found") {
             toast.danger("登录会话已失效", { description: message });
             reset();
             return false;
           }
-          toast.danger("登录失败", { description: message });
+          toast.danger(password === undefined ? "登录失败" : "密码设置失败", {
+            description: message,
+          });
           return false;
         }
 
@@ -87,6 +100,18 @@ export default function Login() {
       }
     },
     [reset],
+  );
+
+  const handleResetPassword = useCallback(
+    (password: string) => {
+      if (!sessionID) {
+        toast.danger("登录会话已失效，请重新登录");
+        reset();
+        return;
+      }
+      void finalize(sessionID, password);
+    },
+    [finalize, reset, sessionID],
   );
 
   const enterQQ = useCallback(
@@ -158,6 +183,14 @@ export default function Login() {
         is_temporary: !remember,
         altcha_payload: altchaPayload,
       });
+
+      if (res.banned) {
+        // 凭据已验证但账号被封禁：展示独立封禁页，不再创建登录会话。
+        setSessionID(null);
+        setAvailableMethods([]);
+        setStep({ kind: "banned", ban: res });
+        return;
+      }
 
       setSessionID(res.session_id);
       const methods = (res["2fa"] ?? []) as TwoFactorMethod[];
@@ -292,10 +325,17 @@ export default function Login() {
     }
   };
 
+  const pageTitle =
+    step.kind === "banned"
+      ? "账号封禁"
+      : step.kind === "reset-password"
+        ? "设置新密码"
+        : "登录";
+
   return (
     <>
       <Helmet>
-        <title>登录 - 复旦附中学生 ID</title>
+        <title>{pageTitle} - 复旦附中学生 ID</title>
       </Helmet>
       {step.kind === "school-ip" && (
         <SchoolIP label={step.label} onSubmit={() => setStep({ kind: "credentials" })} />
@@ -303,6 +343,7 @@ export default function Login() {
       {step.kind === "credentials" && (
         <PasswordVerify loading={loading} onSubmit={handleCredentials} />
       )}
+      {step.kind === "banned" && <Banned ban={step.ban} onBack={reset} />}
       {step.kind === "select-2fa" && (
         <Select2FA
           methods={step.methods}
@@ -332,6 +373,14 @@ export default function Login() {
           loading={loading}
           onVerify={() => handleQQVerify(step.code)}
           onBack={backFromMethod}
+        />
+      )}
+      {step.kind === "reset-password" && (
+        <NewPassword
+          description="管理员已重置你的密码，请设置新密码后继续登录。"
+          loading={loading}
+          onSubmit={handleResetPassword}
+          onBack={reset}
         />
       )}
     </>

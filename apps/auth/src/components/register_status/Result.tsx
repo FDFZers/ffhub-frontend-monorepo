@@ -51,7 +51,7 @@ function Result({ result, onBack }: Props) {
         <Card.Description>你的注册申请审核结果如下</Card.Description>
       </Card.Header>
       <Card.Content className="flex w-md max-w-full flex-col gap-4">
-        <div className="flex flex-col items-center gap-1 px-2 py-2 text-center">
+        <div className="flex flex-col items-center gap-1 p-2 text-center">
           <Icon aria-hidden className={`size-20 ${meta.iconClassName}`} strokeWidth={1.5} />
           <Typography type="h3" className="mt-1">
             {meta.title}
