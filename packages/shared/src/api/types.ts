@@ -21,6 +21,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   not_found: "未找到",
   conflict: "冲突",
   altcha_error: "人机验证失败",
+  code_not_detected: "未识别到验证码",
   password_reset_required: "需要重设密码",
   client_error: "客户端错误",
   unknown: "未知错误",

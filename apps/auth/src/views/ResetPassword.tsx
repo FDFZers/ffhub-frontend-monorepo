@@ -20,6 +20,7 @@ import Identifier from "../components/reset_password/Identifier.tsx";
 import Method from "../components/reset_password/Method.tsx";
 import NewPassword from "../components/reset_password/NewPassword.tsx";
 import Success from "../components/reset_password/Success.tsx";
+
 type Step =
   | { kind: "method" }
   | { kind: "identifier" }
@@ -163,23 +164,16 @@ export default function ResetPassword() {
       try {
         await verifyQQ(sessionID, code);
         setStep({ kind: "password" });
-      } catch (e: unknown) {
-        console.warn("[FFHub Auth] QQ 验证未通过", e);
-        const errorCode = (e as { code?: string } | null)?.code;
+      } catch (e: any) {
+        if (e.code == "code_not_detected") return;
+        console.warn("[FFHub Auth] QQ 验证失败", e);
         const message = e instanceof Error ? e.message : "QQ 验证失败";
         if (message.includes("二次验证已通过")) {
           setStep({ kind: "password" });
           return;
         }
-        if (errorCode === "not_found") {
-          toast.danger("找回密码会话已过期", { description: message });
-          restart();
-          return;
-        }
-        if (errorCode === "rate_limit_exceeded" && message.includes("次数过多")) {
-          toast.danger("QQ 验证失败", { description: message });
-          restart();
-        }
+        toast.danger("找回密码会话已过期", { description: message });
+        restart();
       }
     },
     [sessionID, restart],

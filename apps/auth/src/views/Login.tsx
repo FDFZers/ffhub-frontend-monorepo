@@ -21,8 +21,8 @@ import PasswordVerify from "../components/login/PasswordVerify.tsx";
 import SchoolIP from "../components/login/SchoolIP.tsx";
 import Select2FA from "../components/login/Select2FA.tsx";
 import TotpVerify from "../components/login/TotpVerify.tsx";
-import NewPassword from "../components/reset_password/NewPassword.tsx";
 import QQCodeVerify from "../components/QQCodeVerify.tsx";
+import NewPassword from "../components/reset_password/NewPassword.tsx";
 import { resolvePostLoginURL } from "../utils/redirect.ts";
 
 type Step =
@@ -326,11 +326,7 @@ export default function Login() {
   };
 
   const pageTitle =
-    step.kind === "banned"
-      ? "账号封禁"
-      : step.kind === "reset-password"
-        ? "设置新密码"
-        : "登录";
+    step.kind === "banned" ? "账号封禁" : step.kind === "reset-password" ? "设置新密码" : "登录";
 
   return (
     <>

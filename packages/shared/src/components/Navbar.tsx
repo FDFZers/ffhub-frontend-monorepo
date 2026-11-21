@@ -128,7 +128,7 @@ function Navbar({
         <Dropdown>
           <Dropdown.Trigger
             aria-label="账户菜单"
-            className="focus-visible:ring-focus flex max-w-[15rem] items-center gap-2 rounded-full py-1 pr-2 pl-1 whitespace-nowrap focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-focus flex max-w-60 items-center gap-2 rounded-full py-1 pr-2 pl-1 whitespace-nowrap focus-visible:ring-2 focus-visible:outline-none"
           >
             <Avatar color="accent" size="sm">
               {avatarSrc ? <Avatar.Image alt={name} src={avatarSrc} /> : null}
